@@ -1,0 +1,59 @@
+---
+title: 'Managing Access'
+description: 'Manage thread participants and permissions'
+---
+
+### Viewing Participants
+
+<CodeGroup>
+
+```javascript JavaScript
+const participants = await thread.getParticipants();
+```
+
+</CodeGroup>
+
+### Participant Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `userId` | string | User or service account ID |
+| `role` | string | Business role |
+| `accessLevel` | string | Permission level |
+| `grantedBy` | string | Who granted access |
+| `grantedAt` | string | ISO timestamp |
+| `status` | string | `active` or `revoked` |
+
+### Managing Access
+
+<CodeGroup>
+
+```javascript JavaScript
+// Update access level
+await thread.updateAccess('user-123', { accessLevel: 'participant' });
+
+// Revoke access
+await thread.revokeAccess('user-123');
+```
+
+</CodeGroup>
+
+### Access Levels
+
+| Level | Read | Write | Invite | Manage | Notifications |
+|-------|------|-------|--------|--------|---------------|
+| `owner` | All | Yes | Yes | Yes | All |
+| `participant` | All | Yes | Yes | No | Critical + own |
+| `observer` | All | No | No | No | Completions |
+| `external` | Own only | Own only | No | No | Own only |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Notifications" icon="bell" href="/core-concepts/notifications/subscribing">
+    Subscribe to access events
+  </Card>
+  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
+    Understand role-based validation
+  </Card>
+</CardGroup>

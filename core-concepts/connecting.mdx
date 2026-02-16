@@ -1,0 +1,47 @@
+---
+title: 'Connecting'
+description: 'Connect to Threadify Engine and start tracking workflows'
+---
+
+### Basic Connection
+
+<CodeGroup>
+
+```javascript JavaScript
+import { Threadify } from '@threadify/sdk';
+
+const connection = await Threadify.connect('your-api-key', 'my-service');
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `apiKey` | string | Yes | Your Threadify API key |
+| `serviceName` | string | No | Service identifier (e.g., 'payment-service') |
+| `options` | object | No | Connection options |
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxInFlight` | number | 10 | Max pending notifications (max: 100) |
+| `reconnect` | boolean | true | Auto-reconnect on disconnect |
+| `timeout` | number | 30000 | Connection timeout (ms) |
+
+<Warning>
+Never commit API keys to version control. Use environment variables like `process.env.THREADIFY_API_KEY`.
+</Warning>
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tracking Workflows" icon="chart-line" href="/core-concepts/tracking-workflows">
+    Start tracking your first workflow
+  </Card>
+  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
+    Learn how to handle step failures
+  </Card>
+</CardGroup>

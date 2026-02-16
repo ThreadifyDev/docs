@@ -1,0 +1,77 @@
+---
+title: 'Querying Steps'
+description: 'Get step data and history'
+---
+
+### Getting Steps
+
+<CodeGroup>
+
+```javascript JavaScript
+// All steps
+const steps = await thread.steps();
+
+// Specific step
+const orderSteps = await thread.steps('order_placed');
+
+// With filters
+const failedSteps = await thread.steps('payment_processed', { 
+  status: 'failed',
+  limit: 50
+});
+```
+
+</CodeGroup>
+
+### Filter Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `status` | string | `success` or `failed` |
+| `startedAfter` | string | ISO timestamp filter |
+| `startedBefore` | string | ISO timestamp filter |
+| `limit` | number | Max results |
+
+### Step Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `stepId` | string | Step ID |
+| `stepName` | string | Step name |
+| `status` | string | `success` or `failed` |
+| `idempotencyKey` | string | Idempotency key |
+| `context` | object | Business context |
+| `createdAt` | string | ISO timestamp |
+| `retryCount` | number | Retry attempts |
+
+### Step History
+
+<CodeGroup>
+
+```javascript JavaScript
+const history = await step.history();
+```
+
+</CodeGroup>
+
+### History Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `attempt` | number | Attempt number |
+| `status` | string | `success` or `failed` |
+| `timestamp` | string | ISO timestamp |
+| `context` | object | Context at attempt |
+| `error` | string | Error message |
+| `duration` | number | Execution time (ms) |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Validation Results" icon="shield-check" href="/core-concepts/data-retrieval/validation-results">
+    Query contract violations
+  </Card>
+  <Card title="Using Sub-steps" icon="list-tree" href="/core-concepts/using-sub-steps">
+    Track granular operations
+  </Card>
+</CardGroup>

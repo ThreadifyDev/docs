@@ -1,0 +1,44 @@
+---
+title: 'Handling Notifications'
+description: 'Acknowledge and handle notification errors'
+---
+
+### Acknowledging
+
+**You must call `notification.ack()`** to confirm processing:
+
+<CodeGroup>
+
+```javascript JavaScript
+connection.on('rule.violated', 'order_placed', async (notification) => {
+  try {
+    await processViolation(notification);
+    notification.ack();  // ACK on success
+  } catch (error) {
+    // Don't ACK - notification redelivered after 30s (max 3 attempts)
+  }
+});
+```
+
+</CodeGroup>
+
+### Retry Behavior
+
+| Attempt | Delay | Action |
+|---------|-------|--------|
+| 1 | 0s | Initial delivery |
+| 2 | 30s | First retry (if no ACK) |
+| 3 | 30s | Second retry (if no ACK) |
+| Failed | - | Moved to Dead Letter Queue |
+
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Notification Architecture" icon="book" href="/things-to-know/notifications">
+    Learn about notification internals
+  </Card>
+  <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">
+    Query historical thread data
+  </Card>
+</CardGroup>

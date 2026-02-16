@@ -1,0 +1,46 @@
+---
+title: 'Joining Threads'
+description: 'Join threads using invitations or direct access'
+---
+
+### Joining
+
+<CodeGroup>
+
+```javascript JavaScript
+// With invitation token (external partners)
+const thread = await connection.join(invitationToken);
+
+// Direct join (internal services)
+const thread = await connection.join('thread-uuid', 'logistics');
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `tokenOrThreadId` | string | Invitation token or thread ID |
+| `role` | string | Role (required for direct join) |
+
+### Thread Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | string | Thread ID |
+| `myRole` | string | Your assigned role |
+| `myAccessLevel` | string | Your access level |
+| `contractName` | string | Contract name |
+| `status` | string | Thread status |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Managing Access" icon="users-gear" href="/core-concepts/thread-collaboration/managing-access">
+    Manage thread participants and permissions
+  </Card>
+  <Card title="Data Retrieval" icon="database" href="/core-concepts/data-retrieval/getting-threads">
+    Query thread data across participants
+  </Card>
+</CardGroup>

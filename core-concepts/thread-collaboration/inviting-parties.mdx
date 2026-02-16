@@ -1,0 +1,49 @@
+---
+title: 'Inviting Parties'
+description: 'Invite external parties to collaborate on threads'
+---
+
+### Creating Invitations
+
+<CodeGroup>
+
+```javascript JavaScript
+const invitation = await thread.inviteParty({
+  role: 'logistics',
+  accessLevel: 'participant',
+  expiresIn: '48h'
+});
+
+// Share invitation.token with the other party
+```
+
+</CodeGroup>
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `role` | string | required | Business/contract role |
+| `accessLevel` | string | `'external'` | Permission level |
+| `expiresIn` | string | `'24h'` | Token expiration (e.g., '24h', '7d') |
+
+### Invitation Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `token` | string | Invitation token to share |
+| `threadId` | string | Thread ID |
+| `role` | string | Assigned role |
+| `accessLevel` | string | Access level |
+| `expiresAt` | string | ISO timestamp |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Joining Threads" icon="arrow-right-to-bracket" href="/core-concepts/thread-collaboration/joining-threads">
+    Learn how to join threads with invitations
+  </Card>
+  <Card title="Managing Access" icon="users-gear" href="/core-concepts/thread-collaboration/managing-access">
+    Manage thread participants and permissions
+  </Card>
+</CardGroup>

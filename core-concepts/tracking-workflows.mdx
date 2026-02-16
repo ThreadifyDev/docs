@@ -1,0 +1,58 @@
+---
+title: 'Tracking Workflows'
+description: 'Track business workflows with threads and steps'
+---
+
+### Starting a Thread
+
+A thread represents a workflow execution instance (e.g., an order, a support ticket).
+
+<CodeGroup>
+
+```javascript JavaScript
+const thread = await connection.start();
+```
+
+</CodeGroup>
+
+### Recording Steps
+
+Always create the step **before** executing business logic:
+
+<CodeGroup>
+
+```javascript JavaScript
+const step = thread.step('order_received');
+
+// Execute business logic
+const order = await receiveOrder();
+
+// Record success with context
+await step.addContext({ orderId: order.id, total: order.total }).success();
+```
+
+</CodeGroup>
+
+### Step Methods
+
+| Method | Description |
+|--------|-------------|
+| `.success()` | Mark step as successful |
+| `.success(data)` | Success with additional data |
+| `.failed(data)` | Mark step as failed with error data |
+| `.addContext(data)` | Add business context (analytics, debugging) |
+
+### Idempotency
+
+Threadify automatically handles idempotency - recording the same step multiple times only stores the first execution.
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
+    Learn how to handle and record failures
+  </Card>
+  <Card title="External References" icon="link" href="/core-concepts/external-references">
+    Link to external systems like Stripe or Shopify
+  </Card>
+</CardGroup>

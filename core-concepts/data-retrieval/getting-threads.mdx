@@ -1,0 +1,54 @@
+---
+title: 'Getting Threads'
+description: 'Retrieve and query thread data'
+---
+
+### Retrieving Threads
+
+<CodeGroup>
+
+```javascript JavaScript
+// By ID
+const thread = await connection.getThread('thread-uuid');
+
+// By external reference
+const threads = await connection.getThreadsByRef({
+  refKey: 'stripe_payment_id',
+  refValue: 'pi_1234567890'
+});
+```
+
+</CodeGroup>
+
+### Query Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `refKey` | string | Reference key |
+| `refValue` | string | Reference value |
+| `status` | string | `active`, `completed`, `cancelled` |
+| `startedAfter` | string | ISO timestamp filter |
+| `startedBefore` | string | ISO timestamp filter |
+| `limit` | number | Max results |
+
+### Thread Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | string | Thread ID |
+| `status` | string | `active`, `completed`, `cancelled` |
+| `contractName` | string | Contract name |
+| `startedAt` | string | ISO timestamp |
+| `completedAt` | string | ISO timestamp |
+| `ownerId` | string | Creator user/service |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Querying Steps" icon="list" href="/core-concepts/data-retrieval/querying-steps">
+    Get step data and execution history
+  </Card>
+  <Card title="Validation Results" icon="shield-check" href="/core-concepts/data-retrieval/validation-results">
+    Query contract violations
+  </Card>
+</CardGroup>

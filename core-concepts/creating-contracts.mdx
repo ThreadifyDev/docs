@@ -1,0 +1,167 @@
+---
+title: 'Creating a Contract'
+description: 'Define business rules and validation logic for your workflows'
+---
+
+**Contracts** define business rules and validation logic that enforce how steps should execute and relate to each other. They provide real-time validation and ensure business processes follow defined patterns.
+
+### Contract Properties
+
+- **Name** - Unique identifier for the contract
+- **Version** - Supports contract evolution
+- **Rules** - Validation logic for steps and transitions
+- **Entry Points** - Valid starting steps
+- **Terminal Steps** - Steps that complete the thread
+- **Timeouts** - Maximum duration for steps and threads
+
+### Contract Rules
+
+Contracts can validate:
+
+- **Step data** - Required fields and data formats
+- **Step sequences** - Which steps can follow others
+- **Time limits** - Maximum execution time for steps and threads
+- **Business logic** - Custom validation rules
+
+### Contract Benefits
+
+- **Real-time validation** - Rules checked as steps execute
+- **Business enforcement** - Ensure processes follow requirements
+- **Error prevention** - Catch violations before they cause issues
+- **Documentation** - Contracts serve as living documentation
+
+### Contract Structure
+
+<CodeGroup>
+
+```yaml YAML
+contract_name: order_fulfillment
+version: 1
+description: E-commerce order fulfillment workflow
+
+# Entry points - where threads can start
+entry_points:
+  - order_placed
+
+# Parties involved in the workflow
+parties:
+  - merchant
+  - logistics
+
+# Steps in the workflow
+steps:
+  - id: order_placed
+    owner: merchant
+    type: managed
+    timeout: 5m
+    business_context:
+      required:
+        - order_id
+        - product_id
+        - quantity
+      optional:
+        - customer_notes
+
+  - id: inventory_checked
+    owner: merchant
+    type: managed
+    timeout: 1m
+    business_context:
+      required:
+        - in_stock
+        - warehouse_id
+
+  - id: shipment_created
+    owner: logistics
+    type: managed
+    timeout: 24h
+    business_context:
+      required:
+        - tracking_number
+        - carrier_name
+
+# Transitions define valid step flows
+transitions:
+  - from: order_placed
+    to:
+      - inventory_checked
+
+  - from: inventory_checked
+    to:
+      - shipment_created
+      - order_cancelled
+
+# Terminal steps - where threads can end
+terminal_steps:
+  - order_delivered
+  - order_cancelled
+
+# Thread-level timeout
+max_duration: 7d
+```
+
+</CodeGroup>
+
+### Using Your Contract
+
+Once created, contracts validate required fields automatically:
+
+<CodeGroup>
+
+```javascript JavaScript
+const thread = await connection.start('order_fulfillment', 'merchant');
+
+// Contract validates this is a valid entry point
+// and checks for required fields
+await thread.step('order_placed')
+  .addContext({ 
+    order_id: order.id,        // required by contract
+    product_id: order.productId, // required by contract
+    quantity: order.quantity    // required by contract
+  })
+  .success();
+```
+
+</CodeGroup>
+
+<Info>
+The `// required` comments refer to the `business_context.required` fields defined in the [contract YAML sample](#contract-structure) above. See how `order_id`, `product_id`, and `quantity` are listed under `steps[0].business_context.required`.
+</Info>
+
+### Contract Validation
+
+Contracts validate in real-time:
+
+| Validation | Description | Severity |
+|------------|-------------|----------|
+| **Entry Point** | First step must be in `entry_points` | Critical |
+| **Required Fields** | Context must include all required fields | Critical |
+| **Transitions** | Steps must follow allowed `transitions` | Critical |
+| **Step Timeout** | Step must complete within timeout | Critical |
+| **Thread Duration** | Thread must complete within `max_duration` | Critical |
+| **Optional Fields** | Missing optional fields logged | Info |
+
+### Contract Versions
+
+<CodeGroup>
+
+```javascript JavaScript
+// Use latest version (recommended)
+const thread = await connection.start('order_fulfillment', 'merchant');
+
+// Use specific version
+const thread = await connection.start('order_fulfillment:2', 'merchant');
+```
+
+</CodeGroup>
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
+    Learn how to use contracts in your code
+  </Card>
+  <Card title="Tracking Workflows" icon="route" href="/core-concepts/tracking-workflows">
+    Record steps in your workflow
+  </Card>
+</CardGroup>

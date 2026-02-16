@@ -1,0 +1,84 @@
+---
+title: 'Subscribing to Events'
+description: 'Subscribe to workflow events and validation alerts'
+---
+
+### Flow Control
+
+Control how many notifications can be pending at once:
+
+<CodeGroup>
+
+```javascript JavaScript
+const connection = await Threadify.connect('your-api-key', 'my-service', {
+  maxInFlight: 50  // Default: 10, Max: 100
+});
+```
+
+</CodeGroup>
+
+Notifications are **HPA-safe** - each delivered to exactly one pod in your cluster.
+
+### Event Patterns
+
+| Pattern | Triggers On |
+|---------|-------------|
+| `thread.cancelled` | Thread cancelled |
+| `thread.completed` | Thread completed |
+| `step.success` | Step succeeded |
+| `step.failed` | Step failed |
+| `rule.violated` | Contract violation |
+| `rule.passed` | Contract validation passed |
+| `step.*` | Any step event (wildcard) |
+| `rule.*` | Any validation (wildcard) |
+
+### Subscribing
+
+<CodeGroup>
+
+```javascript JavaScript
+// Thread events (2 parameters)
+connection.on('thread.completed', (notification) => {
+  console.log('Thread completed');
+  notification.ack();
+});
+
+// Step events (3 parameters: event, stepName, handler)
+connection.on('step.failed', 'payment_processed', (notification) => {
+  console.error('Payment failed:', notification.message);
+  notification.ack();
+});
+
+// Contract-specific (use @ syntax)
+connection.on('rule.violated', 'product_delivery@order_placed', (notification) => {
+  console.error('Contract violation:', notification.message);
+  notification.ack();
+});
+```
+
+</CodeGroup>
+
+### Notification Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `notificationId` | string | Unique notification ID |
+| `threadId` | string | Thread ID |
+| `stepName` | string | Step name |
+| `stepStatus` | string | `success` or `failed` |
+| `status` | string | `passed` or `violated` |
+| `severity` | string | `info`, `warning`, `critical` |
+| `message` | string | Human-readable message |
+| `timestamp` | string | ISO timestamp |
+| `ack()` | method | Acknowledge notification |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Handling Notifications" icon="code" href="/core-concepts/notifications/handling">
+    Learn how to process and acknowledge notifications
+  </Card>
+  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
+    Understand contract validation
+  </Card>
+</CardGroup>

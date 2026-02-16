@@ -1,0 +1,57 @@
+---
+title: 'Validation Results'
+description: 'Query contract violations'
+---
+
+### Getting Validations
+
+<CodeGroup>
+
+```javascript JavaScript
+const validations = await thread.validationResults({ limit: 10 });
+```
+
+</CodeGroup>
+
+### Query Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `stepName` | string | Filter by step |
+| `severity` | string | `critical`, `warning`, `info` |
+| `status` | string | `violated`, `passed` |
+| `limit` | number | Max results |
+
+### Validation Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `stepId` | string | Step ID |
+| `stepName` | string | Step name |
+| `status` | string | `violated` or `passed` |
+| `severity` | string | `critical`, `warning`, `info` |
+| `message` | string | Human-readable message |
+| `violationType` | string | Type of violation |
+| `timestamp` | string | ISO timestamp |
+
+### Violation Types
+
+| Type | Severity |
+|------|----------|
+| `invalid_entry_point` | Critical |
+| `missing_required_field` | Critical |
+| `invalid_transition` | Critical |
+| `step_timeout` | Critical |
+| `thread_max_duration` | Critical |
+| `retry_limit_exceeded` | Critical |
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
+    Understand contract validation
+  </Card>
+  <Card title="Creating a Contract" icon="pen" href="/core-concepts/creating-contracts">
+    Define validation rules
+  </Card>
+</CardGroup>

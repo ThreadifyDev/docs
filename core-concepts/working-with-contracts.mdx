@@ -1,0 +1,91 @@
+---
+title: 'Working with Contracts'
+description: 'Enforce workflow structure and validate steps automatically with contracts'
+---
+
+<Note>
+New to contracts? Learn how to [create a contract](/core-concepts/creating-contracts) first.
+</Note>
+
+### Starting with a Contract
+
+Contracts enforce workflow structure and validate steps automatically.
+
+<CodeGroup>
+
+```javascript JavaScript
+// Start with latest version
+const thread = await connection.start('order_fulfillment', 'merchant');
+
+// Or use specific version
+const thread = await connection.start('order_fulfillment:2', 'merchant');
+```
+
+</CodeGroup>
+
+### What Contracts Validate
+
+| Validation | Description |
+|------------|-------------|
+| **Entry points** | First step must be a valid entry point |
+| **Transitions** | Steps must follow allowed transitions |
+| **Required fields** | Context must include required fields |
+| **Terminal states** | Thread completes at terminal nodes |
+
+### Recording Steps with Contracts
+
+Contracts validate required fields automatically:
+
+<CodeGroup>
+
+```javascript JavaScript
+const thread = await connection.start('order_fulfillment', 'merchant');
+
+// Contract validates this is a valid entry point
+// and checks for required fields
+await thread.step('order_placed')
+  .addContext({ 
+    order_id: order.id,        // required
+    product_id: order.productId, // required
+    quantity: order.quantity    // required
+  })
+  .success();
+```
+
+</CodeGroup>
+
+### Handling Violations
+
+Violations are reported via notifications but don't block execution:
+
+<CodeGroup>
+
+```javascript JavaScript
+// Subscribe to violations
+connection.on('rule.violated', 'order_placed', (notification) => {
+  console.error('Validation violation:', notification.message);
+  console.log('Severity:', notification.severity); // 'critical', 'warning', 'info'
+  notification.ack();
+});
+
+// Your code continues executing
+const thread = await connection.start('order_fulfillment', 'merchant');
+await thread.step('invalid_step').success(); // Violation reported, but doesn't throw
+```
+
+</CodeGroup>
+
+<Info>
+Learn more about contract structure in [Things to Know → Contracts](/things-to-know/contracts)
+</Info>
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Inviting Parties" icon="users" href="/core-concepts/thread-collaboration/inviting-parties">
+    Invite others to collaborate on threads
+  </Card>
+  <Card title="Notifications" icon="bell" href="/core-concepts/notifications/subscribing">
+    Subscribe to validation alerts
+  </Card>
+</CardGroup>

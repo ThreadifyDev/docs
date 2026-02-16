@@ -1,0 +1,40 @@
+---
+title: 'Handling Failures'
+description: 'Properly handle and record step failures in your workflows'
+---
+
+### Recording Failures
+
+<CodeGroup>
+
+```javascript JavaScript
+const step = thread.step('payment_processed');
+
+try {
+  const payment = await processPayment(orderId);
+  await step.addContext(payment).success();
+} catch (error) {
+  await step.failed({ 
+    message: error.message,
+    errorCode: 'PAYMENT_FAILED',
+    retryable: true
+  });
+}
+```
+
+</CodeGroup>
+
+### Retry Tracking
+
+Each retry attempt is automatically tracked in step history for debugging.
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="External References" icon="link" href="/core-concepts/external-references">
+    Link workflows to external systems
+  </Card>
+  <Card title="Using Sub-steps" icon="list-tree" href="/core-concepts/using-sub-steps">
+    Break down complex operations
+  </Card>
+</CardGroup>
