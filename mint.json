@@ -15,6 +15,10 @@
       "to": "#666666"
     }
   },
+  "topbarCtaButton": {
+    "type": "github",
+    "url": "https://github.com/ThreadifyDev/threadify"
+  },
   "navigation": [
     {
       "group": "Getting Started",
@@ -85,7 +89,8 @@
     }
   ],
   "footerSocials": {
-    "website": "https://threadify.dev"
+    "website": "https://threadify.dev",
+    "github": "https://github.com/ThreadifyDev/threadify"
   },
   "search": {
     "prompt": "Ask me anything about Threadify..."
