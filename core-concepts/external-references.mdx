@@ -37,7 +37,7 @@ await thread.addRefs({
   order_id: 'ORD-12345'
 });
 
-// Then record the step
+// Then record the step with context
 await thread.step('process_payment')
   .addContext({ amount: 299.99, currency: 'USD' })
   .success();
