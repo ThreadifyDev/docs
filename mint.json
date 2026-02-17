@@ -40,6 +40,7 @@
         "core-concepts/tracking-workflows",
         "core-concepts/creating-contracts",
         "core-concepts/working-with-contracts",
+        "core-concepts/idempotency",
         "core-concepts/using-sub-steps",
         {
           "group": "Thread Collaboration",

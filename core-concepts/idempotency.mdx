@@ -5,116 +5,55 @@ description: Ensuring consistent step recordings in Threadify
 
 **Idempotency** ensures that recording the same step multiple times has the same effect as recording it once. This prevents duplicate operations and ensures consistent execution when retries or network issues occur.
 
-### Idempotency Keys
+### Idempotency Approaches
 
-#### Auto-generated Keys
-- Threadify automatically generates unique keys for each step
+| Approach | When to Use | Key Generation |
+|----------|-------------|----------------|
+| **Auto-generated** (default) | Context uniquely identifies operation | Hash of `stepName + context` |
+| **Manual** (`.idempotencyKey()`) | External system IDs, user-initiated retries, cross-service deduplication | Custom key (e.g., Stripe payment ID, request ID) |
 
-#### Custom Keys
-- You can provide your own idempotency keys for business-level deduplication
-- Example: Use order ID for payment step
+<CodeGroup>
 
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Auto-generated key (default)
-const paymentStep = thread.step('payment_processed');
+```javascript JavaScript
+// Auto-generated (default)
+await thread.step('validate_cart')
+  .addContext({ items: '3', total: '99.99' })
+  .success();
 
-// Custom key for business deduplication
-const orderPaymentStep = thread.step('payment_processed')
-  .idempotencyKey(`order_${orderId}_payment`);
+// Manual key with external ID
+const payment = await stripe.charges.create({ amount: 9999 });
+await thread.step('charge_payment')
+  .idempotencyKey(payment.id)
+  .addContext({ amount: '99.99' })
+  .success();
 ```
-</Tab>
-</Tabs>
 
-### When Idempotency Matters
+</CodeGroup>
 
-#### Network Retries
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Retry with same idempotency key
-const paymentStep = thread.step('payment_processed')
-  .idempotencyKey(`payment_${orderId}`);
+### Use Cases
 
-await paymentStep.success({ transactionId: 'txn_123' });
-// Second call with same key is ignored
-await paymentStep.success({ transactionId: 'txn_123' });
-```
-</Tab>
-</Tabs>
-
-### Service Restarts
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Service crashes after processing
-const paymentStep = thread.step('payment_processed')
-  .idempotencyKey(`payment_${orderId}`);
-await paymentStep.success({ transactionId: 'txn_123' });
-
-// Service restarts - same key returns existing result
-const restartedStep = thread.step('payment_processed')
-  .idempotencyKey(`payment_${orderId}`);
-```
-</Tab>
-</Tabs>
-
-### Race Conditions
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Multiple services with same idempotency key
-const stepA = thread.step('order_processed')
-  .idempotencyKey(`order_${orderId}`);
-
-const stepB = thread.step('order_processed')
-  .idempotencyKey(`order_${orderId}`);
-
-// Only first succeeds, second is ignored
-```
-</Tab>
-</Tabs>
-
-### Idempotency in Action
-
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Use business key to prevent duplicate charges
-async function processPayment(orderId, amount) {
-  const paymentStep = thread.step('payment_processed')
-    .idempotencyKey(`payment_${orderId}`);
-  
-  try {
-    const payment = await paymentGateway.charge({ orderId, amount });
-    await paymentStep.addContext({ transactionId: payment.id }).success();
-    return payment;
-  } catch (error) {
-    await paymentStep.failed({ message: error.message });
-    throw error;
-  }
-}
-
-// Safe to call multiple times
-await processPayment('order_123', 99.99); // Processed
-await processPayment('order_123', 99.99); // Ignored
-await processPayment('order_123', 99.99); // Ignored
-```
-</Tab>
-</Tabs>
+| Scenario | Behavior | Example |
+|----------|----------|----------|
+| **Network retries** | Second call with same key is ignored | Payment processing retry |
+| **Service restarts** | Same key returns existing result | Service crashes mid-operation |
+| **Race conditions** | Only first request succeeds | Multiple pods processing same order |
+| **Duplicate prevention** | Prevents duplicate charges/operations | User clicks "Pay" twice |
 
 ### Best Practices
 
-- **Business keys** - Use business identifiers when possible
-- **Consistent naming** - Follow patterns for key generation
-- **Scope appropriately** - Keys should be unique within scope
-- **Don't reuse** - Never reuse idempotency keys for different operations
+- Use business identifiers (order ID, payment ID) when available
+- Follow consistent naming patterns for key generation
+- Ensure keys are unique within their scope
+- Never reuse idempotency keys for different operations
 
-### Benefits
+### Next Steps
 
-- **Retry safety** - Services can retry without side effects
-- **Consistency** - Thread state remains consistent
-- **Recovery** - Systems can recover from failures safely
-- **Exactly-once processing** - Prevents duplicate operations
+<CardGroup cols={2}>
+  <Card title="Tracking Workflows" icon="route" href="/core-concepts/tracking-workflows">
+    Learn how to record steps in workflows
+  </Card>
+  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
+    Handle retries and failures properly
+  </Card>
+</CardGroup>
 
