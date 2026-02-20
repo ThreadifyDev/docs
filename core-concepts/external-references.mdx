@@ -7,19 +7,19 @@ description: 'Link your workflows to external systems like Stripe, Shopify, and 
 
 ### Reference Types
 
-- **Order IDs** - E-commerce order numbers
-- **Customer IDs** - Customer account identifiers  
-- **Support Tickets** - Zendesk, Jira, Salesforce ticket numbers
-- **Transaction IDs** - Payment processor transaction IDs
-- **Application IDs** - Loan applications, insurance claims
-- **Custom IDs** - Any business-relevant identifier
+| Type | Example Use Case |
+|------|------------------|
+| **Order IDs** | E-commerce order numbers |
+| **Custom IDs** | Any business-relevant identifier |
 
 ### Reference Properties
 
-- **Key** - The reference type (e.g., "order_id")
-- **Value** - The actual identifier (e.g., "ORD-789")
-- **Thread association** - Links to a specific thread
-- **Queryable** - Can be used to find threads
+| Property | Description |
+|----------|-------------|
+| **Key** | The reference type (e.g., "order_id") |
+| **Value** | The actual identifier (e.g., "ORD-789") |
+| **Thread association** | Links to a specific thread |
+| **Queryable** | Can be used to find threads |
 
 ### Adding References
 
@@ -93,90 +93,10 @@ if err != nil {
 
 </CodeGroup>
 
-### Query Options
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `refKey` | string | Reference key (e.g., 'stripe_payment_id') |
-| `refValue` | string | Reference value (e.g., 'pi_123') |
-| `status` | string | Filter by thread status |
-| `startedAfter` | string | ISO timestamp filter |
-| `limit` | number | Max results to return |
-
-### Linking Threads
-
-Link threads together to create relationships:
-
-<CodeGroup>
-
-```javascript JavaScript
-// Link to parent thread
-await childThread.linkThread(parentThread.threadId, 'parent');
-
-// Link to related thread
-await thread.linkThread(relatedThread.threadId, 'related');
-
-// Link to child thread
-await parentThread.linkThread(childThread.threadId, 'child');
-```
-
-```go Go
-// Link to parent thread
-err := childThread.LinkThread(ctx, parentThread.ThreadID, "parent")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Link to related thread
-err = thread.LinkThread(ctx, relatedThread.ThreadID, "related")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Link to child thread
-err = parentThread.LinkThread(ctx, childThread.ThreadID, "child")
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-</CodeGroup>
-
-### Relationship Types
-
-| Type | Description |
-|------|-------------|
-| `parent` | Parent thread that spawned this workflow |
-| `child` | Child thread for sub-processes |
-| `related` | Parallel or dependent workflow |
-| `followup` | Continuation of a previous thread |
-
-### Use Cases
-
-#### Customer Support
-- Support agent gets ticket: "Where's my order?"
-- Query by order ID → Find thread → Show complete execution
-
-#### Operations
-- Monitor specific high-value orders
-- Track problematic customer accounts
-- Investigate transaction failures
-
-#### Analytics
-- Correlate thread data with business metrics
-- Link execution patterns to customer behavior
-
-### Best Practices
-
-- **Add early** - Add references as soon as they're available
-- **Use consistent keys** - Standardize reference names across services
-- **Multiple references** - Add all relevant identifiers
-- **Business context** - Use IDs that teams already recognize
-
 ### Next Steps
 
 <CardGroup cols={2}>
-  <Card title="Using Sub-steps" icon="list-tree" href="/core-concepts/using-sub-steps">
+  <Card title="Sub-steps" icon="list-tree" href="/core-concepts/sub-steps">
     Break down complex operations
   </Card>
   <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">

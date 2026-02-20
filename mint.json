@@ -42,13 +42,12 @@
         "core-concepts/creating-contracts",
         "core-concepts/working-with-contracts",
         "core-concepts/idempotency",
-        "core-concepts/using-sub-steps",
+        "core-concepts/sub-steps",
         {
           "group": "Thread Collaboration",
           "pages": [
             "core-concepts/thread-collaboration/inviting-parties",
-            "core-concepts/thread-collaboration/joining-threads",
-            "core-concepts/thread-collaboration/managing-access"
+            "core-concepts/thread-collaboration/joining-threads"
           ]
         },
         "core-concepts/external-references",
@@ -65,6 +64,7 @@
           "group": "Notifications",
           "pages": [
             "core-concepts/notifications/subscribing",
+            "core-concepts/notifications/unsubscribing",
             "core-concepts/notifications/handling"
           ]
         }

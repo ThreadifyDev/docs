@@ -33,6 +33,28 @@ for (const step of steps) {
 }
 ```
 </Tab>
+<Tab title="Go">
+```go
+// Verify hash chain integrity
+archivedThread, err := conn.GetThread(ctx, "thread-uuid")
+if err != nil {
+    log.Fatal(err)
+}
+
+steps, err := archivedThread.Steps(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+
+for _, step := range steps {
+    if step.Verified {
+        log.Printf("%s: Verified ✓", step.StepName)
+    } else {
+        log.Printf("%s: Chain broken", step.StepName)
+    }
+}
+```
+</Tab>
 </Tabs>
 
 ### Benefits

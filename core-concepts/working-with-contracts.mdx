@@ -9,20 +9,20 @@ New to contracts? Learn how to [create a contract](/core-concepts/creating-contr
 
 ### Starting with a Contract
 
-Contracts enforce workflow structure and validate steps automatically.
+Start a thread with a contract to enable automatic validation:
 
 <CodeGroup>
 
 ```javascript JavaScript
-// Start with latest version
+// Use latest version (recommended)
 const thread = await connection.start('order_fulfillment', 'merchant');
 
-// Or use specific version
+// Use specific version
 const thread = await connection.start('order_fulfillment:2', 'merchant');
 ```
 
 ```go Go
-// Start with latest version
+// Use latest version (recommended)
 thread, err := conn.Start(ctx, 
     threadify.WithContract("order_fulfillment"),
     threadify.WithRole("merchant"),
@@ -31,7 +31,7 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Or use specific version
+// Use specific version
 thread, err := conn.Start(ctx, 
     threadify.WithContract("order_fulfillment:2"),
     threadify.WithRole("merchant"),
@@ -52,99 +52,8 @@ if err != nil {
 | **Required fields** | Context must include required fields |
 | **Terminal states** | Thread completes at terminal nodes |
 
-### Recording Steps with Contracts
-
-Contracts validate required fields automatically:
-
-<CodeGroup>
-
-```javascript JavaScript
-const thread = await connection.start('order_fulfillment', 'merchant');
-
-// Contract validates this is a valid entry point
-// and checks for required fields
-await thread.step('order_placed')
-  .addContext({ 
-    order_id: order.id,        // required
-    product_id: order.productId, // required
-    quantity: order.quantity    // required
-  })
-  .success();
-```
-
-```go Go
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Contract validates this is a valid entry point
-// and checks for required fields
-_, err = thread.Step("order_placed").
-    AddContext(map[string]any{
-        "order_id":   order.ID,        // required
-        "product_id": order.ProductID, // required
-        "quantity":   order.Quantity,  // required
-    }).
-    Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-</CodeGroup>
-
-### Handling Violations
-
-Violations are reported via notifications but don't block execution:
-
-<CodeGroup>
-
-```javascript JavaScript
-// Subscribe to violations
-connection.on('rule.violated', 'order_placed', (notification) => {
-  console.error('Validation violation:', notification.message);
-  console.log('Severity:', notification.severity); // 'critical', 'warning', 'info'
-  notification.ack();
-});
-
-// Your code continues executing
-const thread = await connection.start('order_fulfillment', 'merchant');
-await thread.step('invalid_step').success(); // Violation reported, but doesn't throw
-```
-
-```go Go
-// Subscribe to violations
-err := conn.Subscribe(ctx, "rule.violated", "order_placed", func(n *threadify.Notification) {
-    fmt.Printf("Validation violation: %s\n", n.Message)
-    fmt.Printf("Severity: %s\n", n.Severity) // 'critical', 'warning', 'info'
-    n.Ack()
-})
-if err != nil {
-    log.Fatal(err)
-}
-
-// Your code continues executing
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
-if err != nil {
-    log.Fatal(err)
-}
-_, err = thread.Step("invalid_step").Success(ctx) // Violation reported, but doesn't throw
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-</CodeGroup>
-
 <Info>
-Learn more about contract structure in [Things to Know → Contracts](/things-to-know/contracts)
+Violations are reported via notifications but don't block execution. Learn how to [subscribe to violations](/core-concepts/notifications/subscribing).
 </Info>
 
 ### Next Steps

@@ -1,0 +1,47 @@
+---
+title: 'Unsubscribing'
+description: 'Stop receiving notifications for specific events'
+---
+
+**Unsubscribe** removes event handlers and stops receiving notifications for specific steps or events.
+
+<CodeGroup>
+
+```javascript JavaScript
+// Unsubscribe from specific step event
+connection.unsubscribe('step.success', 'order_placed');
+
+// Unsubscribe from thread-level event
+connection.unsubscribe('thread.completed');
+```
+
+```go Go
+// Unsubscribe from specific step event
+err := conn.Unsubscribe(ctx, "step.success", "order_placed")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Unsubscribe from thread-level event
+err = conn.Unsubscribe(ctx, "thread.completed", "")
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+</CodeGroup>
+
+### When to Unsubscribe
+
+| Scenario | Action |
+|----------|--------|
+| **Cleanup on shutdown** | Unsubscribe before closing connection |
+| **Dynamic subscriptions** | Remove handlers no longer needed |
+| **Memory management** | Prevent handler leaks in long-running processes |
+
+### Behavior
+
+- Removes event handler from client
+- Stops receiving notifications for that event/step combination
+- Server stops sending notifications if no active subscriptions remain
+- Safe to call multiple times (idempotent)

@@ -14,21 +14,6 @@ description: 'Define business rules and validation logic for your workflows'
 - **Terminal Steps** - Steps that complete the thread
 - **Timeouts** - Maximum duration for steps and threads
 
-### Contract Rules
-
-Contracts can validate:
-
-- **Step data** - Required fields and data formats
-- **Step sequences** - Which steps can follow others
-- **Time limits** - Maximum execution time for steps and threads
-- **Business logic** - Custom validation rules
-
-### Contract Benefits
-
-- **Real-time validation** - Rules checked as steps execute
-- **Business enforcement** - Ensure processes follow requirements
-- **Error prevention** - Catch violations before they cause issues
-- **Documentation** - Contracts serve as living documentation
 
 ### Contract Structure
 
@@ -102,101 +87,18 @@ max_duration: 7d
 
 </CodeGroup>
 
-### Using Your Contract
+### Key Components
 
-Once created, contracts validate required fields automatically:
-
-<CodeGroup>
-
-```javascript JavaScript
-const thread = await connection.start('order_fulfillment', 'merchant');
-
-// Contract validates this is a valid entry point
-// and checks for required fields
-await thread.step('order_placed')
-  .addContext({ 
-    order_id: order.id,        // required by contract
-    product_id: order.productId, // required by contract
-    quantity: order.quantity    // required by contract
-  })
-  .success();
-```
-
-```go Go
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Contract validates this is a valid entry point
-// and checks for required fields
-_, err = thread.Step("order_placed").
-    AddContext(map[string]any{
-        "order_id":   order.ID,        // required by contract
-        "product_id": order.ProductID, // required by contract
-        "quantity":   order.Quantity,  // required by contract
-    }).
-    Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-</CodeGroup>
-
-<Info>
-The `// required` comments refer to the `business_context.required` fields defined in the [contract YAML sample](#contract-structure) above. See how `order_id`, `product_id`, and `quantity` are listed under `steps[0].business_context.required`.
-</Info>
-
-### Contract Validation
-
-Contracts validate in real-time:
-
-| Validation | Description | Severity |
-|------------|-------------|----------|
-| **Entry Point** | First step must be in `entry_points` | Critical |
-| **Required Fields** | Context must include all required fields | Critical |
-| **Transitions** | Steps must follow allowed `transitions` | Critical |
-| **Step Timeout** | Step must complete within timeout | Critical |
-| **Thread Duration** | Thread must complete within `max_duration` | Critical |
-| **Optional Fields** | Missing optional fields logged | Info |
-
-### Contract Versions
-
-<CodeGroup>
-
-```javascript JavaScript
-// Use latest version (recommended)
-const thread = await connection.start('order_fulfillment', 'merchant');
-
-// Use specific version
-const thread = await connection.start('order_fulfillment:2', 'merchant');
-```
-
-```go Go
-// Use latest version (recommended)
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Use specific version
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment:2"),
-    threadify.WithRole("merchant"),
-)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-</CodeGroup>
+| Component | Description |
+|-----------|-------------|
+| `contract_name` | Unique identifier for the contract |
+| `version` | Contract version number (supports evolution) |
+| `entry_points` | Valid starting steps for threads |
+| `parties` | Roles involved in the workflow |
+| `steps` | Step definitions with timeouts and required fields |
+| `transitions` | Valid step-to-step flows |
+| `terminal_steps` | Steps that complete the thread |
+| `max_duration` | Thread-level timeout |
 
 ### Next Steps
 
