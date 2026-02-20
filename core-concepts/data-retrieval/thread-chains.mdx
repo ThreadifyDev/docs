@@ -1,0 +1,61 @@
+---
+title: 'Thread Chains'
+description: 'Query parent-child thread relationships'
+---
+
+Thread chains retrieve hierarchical relationships between linked threads, enabling you to trace execution across distributed workflows.
+
+## Overview
+
+When threads are linked using `linkThread()`, you can query the entire chain starting from any thread in the hierarchy. The query traverses downward to descendants only.
+
+## Usage
+
+```javascript
+const chain = await connection.getThreadChain(startThreadId, maxDepth);
+```
+
+## Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `startThreadId` | string | required | Thread ID to start from (any thread in chain) |
+| `maxDepth` | number | 3 | Maximum depth to traverse downward |
+
+## Returns
+
+Array of `ArchivedThread` objects ordered from starting thread to descendants.
+
+## Behavior
+
+- **Starting Point**: Works from any thread (root, middle, or leaf)
+- **Direction**: Traverses downward only (parent → children)
+- **Cycle Prevention**: Automatically detects circular references
+- **Archival Delay**: Requires 1-2 seconds for data persistence
+
+## Relationship Types
+
+| Type | Description |
+|------|-------------|
+| `parent` | Parent thread that spawned this workflow |
+| `child` | Child thread for sub-processes |
+| `related` | Parallel or dependent workflow |
+| `followup` | Continuation of previous thread |
+
+## Use Cases
+
+- **Saga Pattern**: Track compensating transactions across services
+- **Multi-Stage Workflows**: Trace customer requests through multiple services
+- **Debugging**: Identify cascade failures in distributed systems
+- **Analytics**: Analyze complete execution paths
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="External References" icon="link" href="/core-concepts/external-references">
+    Link threads together
+  </Card>
+  <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">
+    Query individual threads
+  </Card>
+</CardGroup>
