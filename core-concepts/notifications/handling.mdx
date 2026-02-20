@@ -20,6 +20,20 @@ connection.on('rule.violated', 'order_placed', async (notification) => {
 });
 ```
 
+```go Go
+err := conn.Subscribe(ctx, "rule.violated", "order_placed", func(n *threadify.Notification) {
+    err := processViolation(n)
+    if err != nil {
+        // Don't ACK - notification redelivered after 30s (max 3 attempts)
+        return
+    }
+    n.Ack() // ACK on success
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Retry Behavior

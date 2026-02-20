@@ -21,6 +21,26 @@ const thread = await connection.start('order_fulfillment', 'merchant');
 const thread = await connection.start('order_fulfillment:2', 'merchant');
 ```
 
+```go Go
+// Start with latest version
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Or use specific version
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment:2"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### What Contracts Validate
@@ -52,6 +72,29 @@ await thread.step('order_placed')
   .success();
 ```
 
+```go Go
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Contract validates this is a valid entry point
+// and checks for required fields
+_, err = thread.Step("order_placed").
+    AddContext(map[string]any{
+        "order_id":   order.ID,        // required
+        "product_id": order.ProductID, // required
+        "quantity":   order.Quantity,  // required
+    }).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Handling Violations
@@ -71,6 +114,31 @@ connection.on('rule.violated', 'order_placed', (notification) => {
 // Your code continues executing
 const thread = await connection.start('order_fulfillment', 'merchant');
 await thread.step('invalid_step').success(); // Violation reported, but doesn't throw
+```
+
+```go Go
+// Subscribe to violations
+err := conn.Subscribe(ctx, "rule.violated", "order_placed", func(n *threadify.Notification) {
+    fmt.Printf("Validation violation: %s\n", n.Message)
+    fmt.Printf("Severity: %s\n", n.Severity) // 'critical', 'warning', 'info'
+    n.Ack()
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Your code continues executing
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+_, err = thread.Step("invalid_step").Success(ctx) // Violation reported, but doesn't throw
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

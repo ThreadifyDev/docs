@@ -18,6 +18,23 @@ const threads = await connection.getThreadsByRef({
 });
 ```
 
+```go Go
+// By ID
+thread, err := conn.GetThread(ctx, "thread-uuid")
+if err != nil {
+    log.Fatal(err)
+}
+
+// By external reference
+threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
+    RefKey:   "stripe_payment_id",
+    RefValue: "pi_1234567890",
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Query Options

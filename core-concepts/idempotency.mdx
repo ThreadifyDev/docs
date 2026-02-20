@@ -28,6 +28,29 @@ await thread.step('charge_payment')
   .success();
 ```
 
+```go Go
+// Auto-generated (default)
+_, err := thread.Step("validate_cart").
+    AddContext(map[string]any{"items": "3", "total": "99.99"}).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Manual key with external ID
+payment, err := stripe.Charges.Create(&stripe.ChargeParams{Amount: 9999})
+if err != nil {
+    log.Fatal(err)
+}
+_, err = thread.Step("charge_payment").
+    IdempotencyKey(payment.ID).
+    AddContext(map[string]any{"amount": "99.99"}).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Use Cases

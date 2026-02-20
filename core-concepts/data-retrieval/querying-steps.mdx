@@ -21,6 +21,26 @@ const failedSteps = await thread.steps('payment_processed', {
 });
 ```
 
+```go Go
+// All steps
+steps, err := thread.Steps(ctx, "", "", "")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Specific step
+orderSteps, err := thread.Steps(ctx, "order_placed", "", "")
+if err != nil {
+    log.Fatal(err)
+}
+
+// With filters
+failedSteps, err := thread.Steps(ctx, "payment_processed", "", "failed")
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Filter Options
@@ -50,6 +70,13 @@ const failedSteps = await thread.steps('payment_processed', {
 
 ```javascript JavaScript
 const history = await step.history();
+```
+
+```go Go
+history, err := step.History(ctx)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

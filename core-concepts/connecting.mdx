@@ -11,6 +11,18 @@ description: 'Connect to Threadify Engine and start tracking workflows'
 import { Threadify } from '@threadify/sdk';
 
 const connection = await Threadify.connect('your-api-key', 'my-service');
+await connection.close()
+```
+
+```go Go
+ctx := context.Background()
+conn, err := threadify.Connect(ctx, "your-api-key", 
+    threadify.WithServiceName("my-service"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+defer conn.Close()
 ```
 
 </CodeGroup>
@@ -32,7 +44,7 @@ const connection = await Threadify.connect('your-api-key', 'my-service');
 | `timeout` | number | 30000 | Connection timeout (ms) |
 
 <Warning>
-Never commit API keys to version control. Use environment variables like `process.env.THREADIFY_API_KEY`.
+Never commit API keys to version control. Use environment variables or secret managers/vault.
 </Warning>
 
 ### Next Steps

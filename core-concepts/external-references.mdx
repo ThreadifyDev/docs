@@ -43,6 +43,31 @@ await thread.step('process_payment')
   .success();
 ```
 
+```go Go
+payment, err := processStripePayment()
+if err != nil {
+    log.Fatal(err)
+}
+
+// Add references at thread level
+err = thread.AddRefs(ctx, map[string]string{
+    "stripe_payment_id":   payment.ID,
+    "stripe_customer_id": payment.Customer,
+    "order_id":           "ORD-12345",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Then record the step with context
+_, err = thread.Step("process_payment").
+    AddContext(map[string]any{"amount": 299.99, "currency": "USD"}).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Querying by Reference
@@ -54,6 +79,16 @@ const threads = await connection.getThreadsByRef({
   refKey: 'stripe_payment_id',
   refValue: 'pi_1234567890'
 });
+```
+
+```go Go
+threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
+    RefKey:   "stripe_payment_id",
+    RefValue: "pi_1234567890",
+})
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>
@@ -83,6 +118,26 @@ await thread.linkThread(relatedThread.threadId, 'related');
 
 // Link to child thread
 await parentThread.linkThread(childThread.threadId, 'child');
+```
+
+```go Go
+// Link to parent thread
+err := childThread.LinkThread(ctx, parentThread.ThreadID, "parent")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Link to related thread
+err = thread.LinkThread(ctx, relatedThread.ThreadID, "related")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Link to child thread
+err = parentThread.LinkThread(ctx, childThread.ThreadID, "child")
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

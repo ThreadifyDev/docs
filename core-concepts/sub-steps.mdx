@@ -72,6 +72,33 @@ try {
 }
 ```
 </Tab>
+<Tab title="Go">
+```go
+// Track granular operations within a step
+paymentStep := thread.Step("payment_processed")
+
+err := processPayment()
+if err != nil {
+    paymentStep.SubStep("error_handler", map[string]any{"error": err.Error()}, "failed")
+    _, stepErr := paymentStep.Failed(ctx, map[string]any{"message": "Payment failed"})
+    if stepErr != nil {
+        log.Fatal(stepErr)
+    }
+    return
+}
+
+paymentStep.SubStep("validate_card", map[string]any{"cardType": "visa"}, "success")
+paymentStep.SubStep("check_fraud", map[string]any{"fraudScore": 0.15}, "success")
+paymentStep.SubStep("authorize_payment", map[string]any{"authCode": "AUTH-123"}, "success")
+
+_, err = paymentStep.
+    AddContext(map[string]any{"totalAmount": 299.99}).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+</Tab>
 </Tabs>
 
 ## Best Practices

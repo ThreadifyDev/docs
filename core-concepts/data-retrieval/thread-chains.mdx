@@ -11,9 +11,25 @@ When threads are linked using `linkThread()`, you can query the entire chain sta
 
 ## Usage
 
+<Tabs>
+<Tab title="JavaScript">
 ```javascript
 const chain = await connection.getThreadChain(startThreadId, maxDepth);
 ```
+</Tab>
+<Tab title="Go">
+```go
+chain, err := conn.GetThreadChain(ctx, startThreadID, 3)
+if err != nil {
+    log.Fatal(err)
+}
+
+for _, t := range chain {
+    fmt.Println("Thread ID:", t.ID)
+}
+```
+</Tab>
+</Tabs>
 
 ## Parameters
 

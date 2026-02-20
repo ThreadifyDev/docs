@@ -13,6 +13,13 @@ A thread represents a workflow execution instance (e.g., an order, a support tic
 const thread = await connection.start();
 ```
 
+```go Go
+thread, err := conn.Start(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Recording Steps
@@ -29,6 +36,22 @@ const order = await receiveOrder();
 
 // Record success with context
 await step.addContext({ orderId: order.id, total: order.total }).success();
+```
+
+```go Go
+step := thread.Step("order_received")
+
+// Execute business logic
+order, err := receiveOrder()
+if err != nil {
+    log.Fatal(err)
+}
+
+// Record success with context
+_, err = step.AddContext(map[string]any{"orderId": order.ID, "total": order.Total}).Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

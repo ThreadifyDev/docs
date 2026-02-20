@@ -69,4 +69,22 @@ const thread = await connection.start('order_fulfillment', 'merchant');
 const freeThread = await connection.start(null, 'merchant');
 ```
 </Tab>
+<Tab title="Go">
+```go
+// With contract validation
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Without contract (free-form)
+freeThread, err := conn.Start(ctx, threadify.WithRole("merchant"))
+if err != nil {
+    log.Fatal(err)
+}
+```
+</Tab>
 </Tabs>

@@ -11,6 +11,13 @@ description: 'Manage thread participants and permissions'
 const participants = await thread.getParticipants();
 ```
 
+```go Go
+participants, err := thread.GetParticipants(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Participant Properties
@@ -34,6 +41,22 @@ await thread.updateAccess('user-123', { accessLevel: 'participant' });
 
 // Revoke access
 await thread.revokeAccess('user-123');
+```
+
+```go Go
+// Update access level
+err := thread.UpdateAccess(ctx, "user-123", threadify.AccessOptions{
+    AccessLevel: "participant",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Revoke access
+err = thread.RevokeAccess(ctx, "user-123")
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

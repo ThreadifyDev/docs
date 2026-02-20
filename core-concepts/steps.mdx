@@ -45,6 +45,32 @@ try {
 }
 ```
 </Tab>
+<Tab title="Go">
+```go
+// Create step first, then execute business logic
+paymentStep := thread.Step("payment_processed")
+payment, err := processPayment(orderId)
+if err != nil {
+    _, stepErr := paymentStep.Failed(ctx, map[string]any{
+        "message":   err.Error(),
+        "errorCode": "PAYMENT_FAILED",
+    })
+    if stepErr != nil {
+        log.Fatal(stepErr)
+    }
+    return
+}
+_, err = paymentStep.
+    AddContext(map[string]any{
+        "amount":        payment.Amount,
+        "transactionId": payment.ID,
+    }).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+</Tab>
 </Tabs>
 
 ## Best Practices

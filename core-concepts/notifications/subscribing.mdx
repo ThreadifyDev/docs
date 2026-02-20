@@ -15,6 +15,16 @@ const connection = await Threadify.connect('your-api-key', 'my-service', {
 });
 ```
 
+```go Go
+conn, err := threadify.Connect(ctx, "your-api-key", 
+    threadify.WithServiceName("my-service"),
+    threadify.WithMaxInFlight(50), // Default: 10, Max: 100
+)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 Notifications are **HPA-safe** - each delivered to exactly one pod in your cluster.
@@ -54,6 +64,35 @@ connection.on('rule.violated', 'product_delivery@order_placed', (notification) =
   console.error('Contract violation:', notification.message);
   notification.ack();
 });
+```
+
+```go Go
+// Thread events
+err := conn.Subscribe(ctx, "thread.completed", "", func(n *threadify.Notification) {
+    fmt.Println("Thread completed")
+    n.Ack()
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Step events (specify step name)
+err = conn.Subscribe(ctx, "step.failed", "payment_processed", func(n *threadify.Notification) {
+    fmt.Printf("Payment failed: %s\n", n.Message)
+    n.Ack()
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Contract-specific (use @ syntax)
+err = conn.Subscribe(ctx, "rule.violated", "product_delivery@order_placed", func(n *threadify.Notification) {
+    fmt.Printf("Contract violation: %s\n", n.Message)
+    n.Ack()
+})
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

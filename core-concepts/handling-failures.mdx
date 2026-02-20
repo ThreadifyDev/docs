@@ -22,6 +22,26 @@ try {
 }
 ```
 
+```go Go
+paymentStep := thread.Step("payment_processed")
+payment, err := processPayment(orderId)
+if err != nil {
+    _, stepErr := paymentStep.Failed(ctx, map[string]any{
+        "message":   err.Error(),
+        "errorCode": "PAYMENT_FAILED",
+        "retryable": true,
+    })
+    if stepErr != nil {
+        log.Fatal(stepErr)
+    }
+    return
+}
+_, err = paymentStep.AddContext(payment).Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Retry Tracking

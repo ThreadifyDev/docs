@@ -1,0 +1,57 @@
+---
+title: 'Go'
+description: 'Install the Threadify SDK for Go projects'
+---
+
+### Installation
+
+<CodeGroup>
+
+```bash go get
+go get github.com/ThreadifyDev/go-sdk
+```
+
+```bash go mod
+# Add to go.mod
+require github.com/ThreadifyDev/go-sdk latest
+```
+
+</CodeGroup>
+
+## Import
+
+<CodeGroup>
+
+```go Standard Import
+import (
+    "context"
+    "log"
+    "github.com/ThreadifyDev/go-sdk"
+)
+```
+
+```go With Alias
+import (
+    "context"
+    "log"
+    threadify "github.com/ThreadifyDev/go-sdk"
+)
+```
+
+</CodeGroup>
+
+## Requirements
+
+- **Go version**: 1.19 or higher
+- **Dependencies**: Automatically managed by Go modules
+
+#### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Connecting" icon="plug" href="/core-concepts/connecting">
+    Connect to Threadify Engine with your API key
+  </Card>
+  <Card title="Tracking Workflows" icon="chart-line" href="/core-concepts/tracking-workflows">
+    Start tracking your first workflow
+  </Card>
+</CardGroup>

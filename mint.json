@@ -33,7 +33,8 @@
         {
           "group": "Installation",
           "pages": [
-            "core-concepts/installation/javascript"
+            "core-concepts/installation/javascript",
+            "core-concepts/installation/go"
           ]
         },
         "core-concepts/connecting",

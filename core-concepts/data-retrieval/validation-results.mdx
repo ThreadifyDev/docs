@@ -11,6 +11,13 @@ description: 'Query contract violations'
 const validations = await thread.validationResults({ limit: 10 });
 ```
 
+```go Go
+validations, err := thread.ValidationResults(ctx, 10)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Query Options

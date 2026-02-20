@@ -122,6 +122,29 @@ await thread.step('order_placed')
   .success();
 ```
 
+```go Go
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Contract validates this is a valid entry point
+// and checks for required fields
+_, err = thread.Step("order_placed").
+    AddContext(map[string]any{
+        "order_id":   order.ID,        // required by contract
+        "product_id": order.ProductID, // required by contract
+        "quantity":   order.Quantity,  // required by contract
+    }).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 <Info>
@@ -151,6 +174,26 @@ const thread = await connection.start('order_fulfillment', 'merchant');
 
 // Use specific version
 const thread = await connection.start('order_fulfillment:2', 'merchant');
+```
+
+```go Go
+// Use latest version (recommended)
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Use specific version
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment:2"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
 ```
 
 </CodeGroup>

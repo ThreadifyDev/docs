@@ -36,6 +36,28 @@ const thread = await connection.start('order_fulfillment', 'merchant', {
 });
 ```
 </Tab>
+<Tab title="Go">
+```go
+// Start thread
+thread, err := conn.Start(ctx, 
+    threadify.WithContract("order_fulfillment"),
+    threadify.WithRole("merchant"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+
+// Add references after creation
+err = thread.AddRefs(ctx, map[string]string{
+    "orderId":         "ORDER-12345",
+    "customerId":      "CUST-789",
+    "stripePaymentId": "pi_abc123",
+})
+if err != nil {
+    log.Fatal(err)
+}
+```
+</Tab>
 </Tabs>
 
 ### Querying by References
@@ -54,6 +76,27 @@ const customerThreads = await connection.getThreadsByRef({
   refKey: 'customerId',
   refValue: 'CUST-456'
 });
+```
+</Tab>
+<Tab title="Go">
+```go
+// Query threads by reference
+threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
+    RefKey:   "orderId",
+    RefValue: "ORDER-12345",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Find by customer ID
+customerThreads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
+    RefKey:   "customerId",
+    RefValue: "CUST-456",
+})
+if err != nil {
+    log.Fatal(err)
+}
 ```
 </Tab>
 </Tabs>

@@ -15,6 +15,23 @@ const thread = await connection.join(invitationToken);
 const thread = await connection.join('thread-uuid', 'logistics');
 ```
 
+```go Go
+// With invitation token (external partners)
+thread, err := conn.Join(ctx, threadify.WithJoinToken(invitationToken))
+if err != nil {
+    log.Fatal(err)
+}
+
+// Direct join (internal services)
+thread, err := conn.Join(ctx, 
+    threadify.WithJoinThreadID(\"thread-uuid\"),
+    threadify.WithJoinRole(\"logistics\"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
 </CodeGroup>
 
 ### Parameters

@@ -17,6 +17,20 @@ const invitation = await thread.inviteParty({
 // Share invitation.token with the other party
 ```
 
+```go Go
+invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
+    Role:        "logistics",
+    AccessLevel: "participant",
+    ExpiresIn:   "48h",
+})
+if err != nil {
+    log.Fatal(err)
+}
+
+// Share invitation.Token with the other party
+fmt.Println("Token:", invitation.Token)
+```
+
 </CodeGroup>
 
 ### Parameters
