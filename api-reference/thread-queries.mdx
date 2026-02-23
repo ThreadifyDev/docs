@@ -37,11 +37,38 @@ query {
   }
 }
 
-# Find by external reference
+# Find by external reference (specific key)
 query {
   threadsByRef(
     refKey: "order_id"
     refValue: "ORD-12345"
+  ) {
+    totalCount
+    threads {
+      id
+      refs
+    }
+  }
+}
+
+# Find by value only (searches all ref keys)
+# Useful when you don't know the ref key name
+query {
+  threadsByRef(
+    refValue: "cus_ABC123"
+  ) {
+    totalCount
+    threads {
+      id
+      refs
+    }
+  }
+}
+
+# Partial match search (case-insensitive)
+query {
+  threadsByRef(
+    refValue: "ABC"
   ) {
     totalCount
     threads {
@@ -56,6 +83,8 @@ query {
 
 ## Query Parameters
 
+### threads() Parameters
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `actor` | String | Filter by actor (user or service) |
@@ -68,6 +97,24 @@ query {
 | `completedBefore` | String | ISO timestamp - threads completed before |
 | `limit` | Int | Max results (default: 50, max: 100) |
 | `offset` | Int | Pagination offset |
+
+### threadsByRef() Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `refKey` | String | **Optional.** Specific ref key to search. If omitted, searches across all ref keys. |
+| `refValue` | String! | **Required.** Ref value to search for. Supports partial matches (case-insensitive). |
+| `status` | String | Filter by thread status |
+| `startedAfter` | String | ISO timestamp - threads started after |
+| `startedBefore` | String | ISO timestamp - threads started before |
+| `limit` | Int | Max results (default: 50, max: 100) |
+| `offset` | Int | Pagination offset |
+
+<Note>
+**Flexible Search:** `threadsByRef` uses case-insensitive pattern matching (ILIKE). 
+- Searching for `"ABC"` will match `"cus_ABC123"`, `"order_ABC"`, `"ABC-456"`, etc.
+- Omit `refKey` when you don't know the exact ref key name (e.g., support scenarios).
+</Note>
 
 ## Thread Fields
 
