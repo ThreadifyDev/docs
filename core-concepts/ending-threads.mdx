@@ -1,0 +1,86 @@
+---
+title: 'Closing Threads'
+description: 'Complete or cancel threads manually for non-contract workflows'
+---
+
+**Closing a thread** allows you to explicitly mark threads as completed or cancelled. Contract-based threads end automatically at terminal steps, while non-contract threads require manual ending.
+
+#### Contract vs Non-Contract
+
+**Contract-based threads** end automatically when a terminal step is reached. **Non-contract threads** require manual ending via `complete()` or `cancel()`.
+
+<Warning>
+Manual completion is rejected for contract-based threads unless a terminal step has been reached.
+</Warning>
+
+### Basic Usage
+
+<CodeGroup>
+
+```javascript JavaScript
+const thread = await threadify.start(); // No contract
+
+// Record some steps
+await thread.step('process_order').success();
+await thread.step('send_email').success();
+
+// Manually end the thread
+await thread.complete('All steps finished');
+// OR
+await thread.cancel('User cancelled order');
+```
+
+```go Go
+thread, _ := conn.Start(ctx) // No contract
+
+// Record some steps
+thread.Step("process_order").Success(ctx)
+thread.Step("send_email").Success(ctx)
+
+// Manually end the thread
+thread.Complete(ctx, "All steps finished")
+// OR
+thread.Cancel(ctx, "User cancelled order")
+```
+
+</CodeGroup>
+
+
+#### Properties
+
+<Tabs>
+<Tab title="JavaScript">
+
+| Method | Description | Parameters |
+|--------|-------------|------------|
+| `complete(reason?)` | Mark thread as successfully completed | `reason` (string/object, optional) |
+| `cancel(reason?)` | Mark thread as cancelled | `reason` (string/object, optional) |
+
+</Tab>
+<Tab title="Go">
+
+| Method | Description | Parameters |
+|--------|-------------|------------|
+| `Complete(ctx, reason?)` | Mark thread as successfully completed | `ctx` (context.Context), `reason` (string, optional) |
+| `Cancel(ctx, reason?)` | Mark thread as cancelled | `ctx` (context.Context), `reason` (string, optional) |
+
+</Tab>
+</Tabs>
+
+### Notifications
+
+When a thread ends, Threadify emits events:
+
+- **`thread.completed`** - Triggered when `complete()` is called or a terminal step is reached
+- **`thread.cancelled`** - Triggered when `cancel()` is called
+
+### Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
+    Learn how contracts enforce terminal steps
+  </Card>
+  <Card title="Notifications" icon="bell" href="/core-concepts/notifications/subscribing">
+    Subscribe to thread completion events
+  </Card>
+</CardGroup>

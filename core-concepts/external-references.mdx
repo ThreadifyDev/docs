@@ -75,7 +75,7 @@ if err != nil {
 <CodeGroup>
 
 ```javascript JavaScript
-const threads = await connection.getThreadsByRef({
+const threads = await threadify.getThreadsByRef({
   refKey: 'stripe_payment_id',
   refValue: 'pi_1234567890'
 });

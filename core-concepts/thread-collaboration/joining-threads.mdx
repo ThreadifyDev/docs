@@ -9,10 +9,10 @@ description: 'Join threads using invitations or direct access'
 
 ```javascript JavaScript
 // With invitation token (external partners)
-const thread = await connection.join(invitationToken);
+const thread = await threadify.join(invitationToken);
 
 // Direct join (internal services)
-const thread = await connection.join('thread-uuid', 'logistics');
+const thread = await threadify.join('thread-uuid', 'logistics');
 ```
 
 ```go Go

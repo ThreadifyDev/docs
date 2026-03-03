@@ -63,10 +63,10 @@ Threads are built by various contributors:
 <Tab title="Node.js">
 ```javascript
 // With contract validation
-const thread = await connection.start('order_fulfillment', 'merchant');
+const thread = await threadify.start('order_fulfillment', 'merchant');
 
 // Without contract (free-form)
-const freeThread = await connection.start(null, 'merchant');
+const freeThread = await threadify.start(null, 'merchant');
 ```
 </Tab>
 <Tab title="Go">

@@ -109,13 +109,13 @@ const invitation = await thread.inviteParty({
 });
 
 // External party joins with token
-const logisticsThread = await connection.join(invitation.token);
+const logisticsThread = await threadify.join(invitation.token);
 await logisticsThread.step('shipment_created')
   .addContext({ trackingNumber: '1Z999AA10123456784' })
   .success();
 
 // Internal service joins directly
-const warehouseThread = await connection.join('thread-uuid', 'warehouse_manager');
+const warehouseThread = await threadify.join('thread-uuid', 'warehouse_manager');
 ```
 </Tab>
 </Tabs>

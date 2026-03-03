@@ -9,10 +9,10 @@ description: 'Stop receiving notifications for specific events'
 
 ```javascript JavaScript
 // Unsubscribe from specific step event
-connection.unsubscribe('step.success', 'order_placed');
+threadify.unsubscribe('step.success', 'order_placed');
 
 // Unsubscribe from thread-level event
-connection.unsubscribe('thread.completed');
+threadify.unsubscribe('thread.completed');
 ```
 
 ```go Go

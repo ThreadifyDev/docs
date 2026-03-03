@@ -27,7 +27,7 @@ description: Linking threads to external system identifiers
 <Tab title="Node.js">
 ```javascript
 // Add references at thread creation
-const thread = await connection.start('order_fulfillment', 'merchant', {
+const thread = await threadify.start('order_fulfillment', 'merchant', {
   external_refs: {
     orderId: 'ORDER-12345',
     customerId: 'CUST-789',
@@ -66,13 +66,13 @@ if err != nil {
 <Tab title="Node.js">
 ```javascript
 // Query threads by reference
-const threads = await connection.getThreadsByRef({
+const threads = await threadify.getThreadsByRef({
   refKey: 'orderId',
   refValue: 'ORDER-12345'
 });
 
 // Find by customer ID
-const customerThreads = await connection.getThreadsByRef({
+const customerThreads = await threadify.getThreadsByRef({
   refKey: 'customerId',
   refValue: 'CUST-456'
 });

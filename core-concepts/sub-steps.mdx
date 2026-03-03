@@ -1,9 +1,19 @@
 ---
 title: Sub-steps
-description: Breaking down complex steps into smaller operations
+description: These are used for tracking smaller unit of work in a business process eg conditional logics, sub-functional logic, etc.
 ---
 
-**Sub-steps** break down complex steps into smaller, trackable operations within a parent step.
+Sub-steps can only be recorded under a step, meaning you need to have created a step object to add a sub-step to it.
+
+**Note:** You cannot create a sub-step once the step has been marked as successful or failed.
+
+#### When to Use
+
+- **Complex operations** - Break down multiple distinct actions within one step
+- **Debugging visibility** - Track intermediate progress for troubleshooting
+- **Performance analysis** - Identify bottlenecks within step execution
+
+### Example
 
 <Tabs>
 <Tab title="Node.js">
@@ -54,20 +64,35 @@ if err != nil {
 ```
 </Tab>
 </Tabs>
+#### Properties
 
-### When to Use
+<Tabs>
+<Tab title="JavaScript">
 
-| Use Case | Description |
-|----------|-------------|
-| **Complex operations** | Multiple distinct actions within one step |
-| **Debugging visibility** | Need to see intermediate progress |
-| **Performance analysis** | Identify bottlenecks within steps |
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Sub-step identifier |
+| `context` | object | No | `{}` | Additional data for the sub-step |
+| `status` | string | No | `'success'` | Either `'success'` or `'failed'` |
+</Tab>
+<Tab title="Go">
 
-### Key Differences from Steps
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Sub-step identifier |
+| `context` | map[string]any | No | `nil` | Additional data for the sub-step |
+| `status` | string | No | `"success"` | Either `"success"` or `"failed"` |
 
-| Feature | Step | Sub-step |
-|---------|------|----------|
-| **Scope** | Thread-level | Within a step |
-| **Validation** | Contract rules apply | No validation |
-| **Notifications** | Triggers events | No events |
+
+</Tab>
+</Tabs>
+
+
+#### Key Differences from Steps
+
+**Scope** - Steps operate at the thread level, while sub-steps are contained within a step.
+
+**Validation** - Steps are subject to contract rules and validation, whereas sub-steps have no validation applied.
+
+**Notifications** - Steps trigger events and notifications, but sub-steps do not emit any events.
 

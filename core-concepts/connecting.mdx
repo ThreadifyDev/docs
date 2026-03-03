@@ -10,8 +10,8 @@ description: 'Connect to Threadify Engine and start tracking workflows'
 ```javascript JavaScript
 import { Threadify } from '@threadify/sdk';
 
-const connection = await Threadify.connect('your-api-key', 'my-service');
-await connection.close()
+const threadify = await Threadify.connect('your-api-key', 'my-service');
+await threadify.close()
 ```
 
 ```go Go

@@ -30,7 +30,7 @@ go get github.com/ThreadifyDev/go-sdk
 import { Threadify } from '@threadify/sdk';
 
 // Connect with your API key and service name
-const connection = await Threadify.connect('your-api-key', 'my-service');
+const threadify = await Threadify.connect('your-api-key', 'my-service');
 ```
 </Tab>
 <Tab title="Go">
@@ -53,10 +53,10 @@ defer conn.Close()
 <Tab title="JavaScript">
 ```javascript
 // Start tracking a workflow
-const thread = await connection.start();
+const thread = await threadify.start();
 
 // Or start with a contract
-const thread = await connection.start('order_fulfillment', 'merchant');
+const thread = await threadify.start('order_fulfillment', 'merchant');
 ```
 </Tab>
 <Tab title="Go">
@@ -182,19 +182,19 @@ Subscribe to WebSocket events to react to execution graph changes in real-time.
 <Tab title="JavaScript">
 ```javascript
 // Listen for execution events
-connection.on('step.success', 'payment_processed', (event) => {
+threadify.on('step.success', 'payment_processed', (event) => {
   console.log('Payment processed - update UI, send confirmation email');
   event.ack();
 });
 
 // Listen for validation violations
-connection.on('rule.violated', 'inventory_check', (event) => {
+threadify.on('rule.violated', 'inventory_check', (event) => {
   console.error('Inventory violation detected - escalate to ops');
   event.ack();
 });
 
 // Contract-specific events
-connection.on('rule.violated', 'product_delivery@order_placed', (event) => {
+threadify.on('rule.violated', 'product_delivery@order_placed', (event) => {
   console.log('Product delivery rule violated - notify logistics');
   event.ack();
 });

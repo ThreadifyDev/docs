@@ -39,18 +39,12 @@
         },
         "core-concepts/connecting",
         "core-concepts/tracking-workflows",
-        "core-concepts/creating-contracts",
+        "core-concepts/sub-steps",
+        "core-concepts/external-references",
         "core-concepts/working-with-contracts",
         "core-concepts/idempotency",
-        "core-concepts/sub-steps",
-        {
-          "group": "Thread Collaboration",
-          "pages": [
-            "core-concepts/thread-collaboration/inviting-parties",
-            "core-concepts/thread-collaboration/joining-threads"
-          ]
-        },
-        "core-concepts/external-references",
+        "core-concepts/handling-failures",
+        "core-concepts/ending-threads",
         {
           "group": "Data Retrieval",
           "pages": [
@@ -59,7 +53,13 @@
             "core-concepts/data-retrieval/validation-results"
           ]
         },
-        "core-concepts/handling-failures",
+        {
+          "group": "Thread Collaboration",
+          "pages": [
+            "core-concepts/thread-collaboration/inviting-parties",
+            "core-concepts/thread-collaboration/joining-threads"
+          ]
+        },
         {
           "group": "Notifications",
           "pages": [
@@ -74,6 +74,7 @@
       "group": "Things to Know",
       "pages": [
         "things-to-know/overview",
+        "core-concepts/creating-contracts",
         "things-to-know/hash-chain",
         "things-to-know/access-levels"
       ]

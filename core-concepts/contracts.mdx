@@ -105,10 +105,10 @@ terminal_steps:
 <Tab title="Node.js">
 ```javascript
 // Use latest contract version
-const thread = await connection.start('order_fulfillment', 'merchant');
+const thread = await threadify.start('order_fulfillment', 'merchant');
 
 // Or specific version
-const threadV2 = await connection.start('order_fulfillment:2', 'merchant');
+const threadV2 = await threadify.start('order_fulfillment:2', 'merchant');
 
 // Contract validates entry points, required fields, and transitions
 await thread.step('order_placed')

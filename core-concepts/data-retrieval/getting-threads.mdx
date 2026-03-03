@@ -9,10 +9,10 @@ description: 'Retrieve and query thread data'
 
 ```javascript JavaScript
 // By ID
-const thread = await connection.getThread('thread-uuid');
+const thread = await threadify.getThread('thread-uuid');
 
 // By external reference
-const threads = await connection.getThreadsByRef({
+const threads = await threadify.getThreadsByRef({
   refKey: 'stripe_payment_id',
   refValue: 'pi_1234567890'
 });

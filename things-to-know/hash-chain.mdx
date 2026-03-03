@@ -21,7 +21,7 @@ Each step contains:
 <Tab title="Node.js">
 ```javascript
 // Verify hash chain integrity
-const archivedThread = await connection.getThread('thread-uuid');
+const archivedThread = await threadify.getThread('thread-uuid');
 const steps = await archivedThread.steps();
 
 for (const step of steps) {

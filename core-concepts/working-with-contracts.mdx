@@ -1,7 +1,9 @@
 ---
 title: 'Working with Contracts'
-description: 'Enforce workflow structure and validate steps automatically with contracts'
+description: 'Define contracts that ensure workflows follow the right process'
 ---
+
+When a thread is created with a contract, Threadify uses that contract to validate record steps and identifies violations, failed business logic, race conditions, etc.
 
 <Note>
 New to contracts? Learn how to [create a contract](/core-concepts/creating-contracts) first.
@@ -15,10 +17,10 @@ Start a thread with a contract to enable automatic validation:
 
 ```javascript JavaScript
 // Use latest version (recommended)
-const thread = await connection.start('order_fulfillment', 'merchant');
+const thread = await threadify.start('order_fulfillment', 'merchant');
 
 // Use specific version
-const thread = await connection.start('order_fulfillment:2', 'merchant');
+const thread = await threadify.start('order_fulfillment:2', 'merchant');
 ```
 
 ```go Go
@@ -45,12 +47,13 @@ if err != nil {
 
 ### What Contracts Validate
 
-| Validation | Description |
-|------------|-------------|
-| **Entry points** | First step must be a valid entry point |
-| **Transitions** | Steps must follow allowed transitions |
-| **Required fields** | Context must include required fields |
-| **Terminal states** | Thread completes at terminal nodes |
+**Entry points** - The first step must be a valid entry point defined in the contract.
+
+**Transitions** - Steps must follow the allowed transitions defined in the contract.
+
+**Required fields** - Context provided with each step must include all required fields.
+
+**Terminal states** - Threads automatically complete when reaching a terminal node.
 
 <Info>
 Violations are reported via notifications but don't block execution. Learn how to [subscribe to violations](/core-concepts/notifications/subscribing).

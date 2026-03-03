@@ -10,7 +10,7 @@ Control how many notifications can be pending at once:
 <CodeGroup>
 
 ```javascript JavaScript
-const connection = await Threadify.connect('your-api-key', 'my-service', {
+const threadify = await Threadify.connect('your-api-key', 'my-service', {
   maxInFlight: 50  // Default: 10, Max: 100
 });
 ```
@@ -48,19 +48,19 @@ Notifications are **HPA-safe** - each delivered to exactly one pod in your clust
 
 ```javascript JavaScript
 // Thread events (2 parameters)
-connection.on('thread.completed', (notification) => {
+threadify.on('thread.completed', (notification) => {
   console.log('Thread completed');
   notification.ack();
 });
 
 // Step events (3 parameters: event, stepName, handler)
-connection.on('step.failed', 'payment_processed', (notification) => {
+threadify.on('step.failed', 'payment_processed', (notification) => {
   console.error('Payment failed:', notification.message);
   notification.ack();
 });
 
 // Contract-specific (use @ syntax)
-connection.on('rule.violated', 'product_delivery@order_placed', (notification) => {
+threadify.on('rule.violated', 'product_delivery@order_placed', (notification) => {
   console.error('Contract violation:', notification.message);
   notification.ack();
 });

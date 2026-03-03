@@ -1,16 +1,16 @@
 ---
-title: 'Tracking Workflows'
-description: 'Track business workflows with threads and steps'
+title: 'Capturing Workflows'
+description: 'Capture business workflows as threads (execution graphs)'
 ---
 
 ### Starting a Thread
 
-A thread represents a workflow execution instance (e.g., an order, a support ticket).
+A thread represents a workflow execution instance (e.g., an order, a support ticket, a user onboarding). A thread is an execution graph containing all actions performed by services involved in delivery an outcome to a customer's request
 
 <CodeGroup>
 
 ```javascript JavaScript
-const thread = await connection.start();
+const thread = await threadify.start();
 ```
 
 ```go Go
@@ -65,6 +65,10 @@ if err != nil {
 | `.failed(data)` | Mark step as failed with error data |
 | `.addContext(data)` | Add business context (analytics, debugging) |
 
+<Warning>
+Non-contract threads remain "active" indefinitely unless explicitly ended. [View Closing a Thread](/core-concepts/ending-threads)
+</Warning>
+
 ### Idempotency
 
 Threadify automatically handles idempotency - recording the same step multiple times only stores the first execution.
@@ -74,6 +78,9 @@ Threadify automatically handles idempotency - recording the same step multiple t
 <CardGroup cols={2}>
   <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
     Learn how to handle and record failures
+  </Card>
+  <Card title="Closing Threads" icon="circle-check" href="/core-concepts/ending-threads">
+    Complete or cancel threads manually
   </Card>
   <Card title="External References" icon="link" href="/core-concepts/external-references">
     Link to external systems like Stripe or Shopify

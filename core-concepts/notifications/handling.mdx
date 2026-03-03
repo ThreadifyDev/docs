@@ -10,7 +10,7 @@ description: 'Acknowledge and handle notification errors'
 <CodeGroup>
 
 ```javascript JavaScript
-connection.on('rule.violated', 'order_placed', async (notification) => {
+threadify.on('rule.violated', 'order_placed', async (notification) => {
   try {
     await processViolation(notification);
     notification.ack();  // ACK on success
