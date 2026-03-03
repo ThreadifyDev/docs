@@ -28,24 +28,24 @@ description: Real-time WebSocket events for reacting to execution changes
 <Tab title="Node.js">
 ```javascript
 // Subscribe to step execution events
-threadify.on('step.success', 'order_placed', async (notification) => {
+connection.on('step.success', 'order_placed', async (notification) => {
   console.log('Order placed:', notification.context);
   
   // Get full thread context for decision making
-  const thread = await threadify.getThread(notification.threadId);
+  const thread = await connection.getThread(notification.threadId);
   console.log('Customer tier:', thread.refs.customerTier);
   
   notification.ack();
 });
 
 // Subscribe to validation violations
-threadify.on('rule.violated', 'inventory_check', (notification) => {
+connection.on('rule.violated', 'inventory_check', (notification) => {
   console.error('Inventory violation:', notification.message);
   notification.ack();
 });
 
 // Contract-specific notifications
-threadify.on('rule.violated', 'product_delivery@order_placed', (notification) => {
+connection.on('rule.violated', 'product_delivery@order_placed', (notification) => {
   console.log('Contract violation detected');
   notification.ack();
 });
