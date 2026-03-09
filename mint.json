@@ -87,7 +87,8 @@
         "api-reference/step-queries",
         "api-reference/validation-queries",
         "api-reference/contract-queries",
-        "api-reference/integrity-verification"
+        "api-reference/integrity-verification",
+        "core-concepts/mcp-integration"
       ]
     }
   ],

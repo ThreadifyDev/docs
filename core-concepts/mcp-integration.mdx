@@ -1,0 +1,54 @@
+---
+title: 'MCP Integration'
+description: 'Connect AI assistants directly to your Threadify execution graphs.'
+---
+
+## Overview
+
+The Model Context Protocol (MCP) server enables any compatible AI assistant to interact directly with your execution graphs. This extends far beyond IDEs—whether you're using desktop assistants (like Claude) for engineering, deploying internal AI agents for customer support (front-office), or building custom LLM tools for operations and compliance (back-office).
+
+Instead of simply relying on static code or disjointed system prompts, you are granting your LLMs complete, real-time execution visibility. Your AI agents can natively query threads, validate sequences, and pinpoint exactly where and why any business process failed or stalled across your entire stack.
+
+## Connection Setup
+
+To connect to Threadify's MCP server, add it to your MCP client configuration (e.g., in Claude Desktop or your IDE's MCP settings):
+
+```json
+{
+  "mcpServers": {
+    "threadify": {
+      "command": "npx",
+      "args": ["-y", "@threadify/mcp-server"],
+      "env": {
+        "THREADIFY_API_KEY": "your_api_key_here",
+        "THREADIFY_URL": "https://mcp.threadify.dev"
+      }
+    }
+  }
+}
+```
+
+## Available Tools
+
+Once connected, your AI assistant will have access to the following tools for querying your execution graphs. The agent will automatically know when and how to invoke these based on your natural language questions.
+
+| Tool | Parameters | Description |
+|---|---|---|
+| `get_thread` | `id` (string) | Retrieve a complete thread by ID, including all its steps and status. |
+| `search_threads` | `contractName` (string)<br/>`status` (string, optional)<br/>`limit` (int, optional) | Find threads matching specific filters. |
+| `contract_graph` | `name` (string)<br/>`version` (int, optional) | Get the expected workflow structure (DAG) of a contract. |
+| `resolve_actors` | `ids` (array of strings) | Convert an array of actor UUIDs to human-readable names. |
+| `verify_thread_integrity` | `threadId` (string) | Cryptographically verify that a thread's hash chain is intact and no steps were skipped. |
+| `graphql_query` | `query` (string)<br/>`variables` (object, optional) | Execute custom GraphQL queries for granular data extraction. |
+
+## Resources and Prompts
+
+The MCP server also exposes helpful resources and prompts designed to give your AI assistants a head start:
+
+**Resources:**
+- `graphql://schema`: Exposes the entire Threadify GraphQL schema, allowing the agent to discover all available query fields when using the `graphql_query` tool.
+
+**Prompts:**
+- `debug_silent_failure`: Investigates why a process successfully responded to the HTTP request but stalled in the business logic downstream.
+- `verify_process_integrity`: Validates a thread against tampering, missing steps, or out-of-order execution.
+- `analyze_workflow`: Aggregates thread execution data to find bottlenecks and patterns across a specific contract series.
