@@ -77,12 +77,14 @@ transitions:
   - from: order_placed
     to:
       - payment_validation
+    timeout: 2m
 
   - from: payment_validation
     to:
       - payment_validated
       - order_cancelled
-    can_retry: true
+    timeout: 30s
+    max_retries: 3
 
 # Terminal steps - where threads can end
 terminal_steps:
