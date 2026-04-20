@@ -15,8 +15,9 @@ description: Real-time WebSocket events for reacting to execution changes
 #### Validation Events
 - **rule.violated** - Contract rule was violated
 - **rule.passed** - Contract rule validation passed
-- **rule.timeout** - Step exceeded time limit
-- **rule.retry_limit** - Step exceeded retry limit
+- **rule.violated.timeout** - Step exceeded time limit (timeout violation)
+- **rule.violated.retry_limit** - Step exceeded retry limit
+- **rule.violated.critical** - Critical severity violations only
 
 #### Thread Lifecycle
 - **thread.completed** - Thread reached terminal state
