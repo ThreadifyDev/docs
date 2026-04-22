@@ -9,7 +9,7 @@ description: 'Invite external parties to collaborate on threads'
 
 ```javascript JavaScript
 const invitation = await thread.inviteParty({
-  role: 'logistics',
+  role: 'participant',
   accessLevel: 'participant',
   expiresIn: '48h'
 });
@@ -19,7 +19,7 @@ const invitation = await thread.inviteParty({
 
 ```go Go
 invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
-    Role:        "logistics",
+    Role:        "participant",
     AccessLevel: "participant",
     ExpiresIn:   "48h",
 })
@@ -37,7 +37,7 @@ fmt.Println("Token:", invitation.Token)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `role` | string | required | Business/contract role |
+| `role` | string | required | System role (`owner`, `participant`, `observer`, `external`) |
 | `accessLevel` | string | `'external'` | Permission level |
 | `expiresIn` | string | `'24h'` | Token expiration (e.g., '24h', '7d') |
 
