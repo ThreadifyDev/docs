@@ -52,26 +52,23 @@ defer conn.Close()
 <Tabs>
 <Tab title="JavaScript">
 ```javascript
-// Start tracking a workflow
-const thread = await connection.start();
+// Start tracking a workflow with a label
+const thread = await connection.start('Order-123');
 
-// Or start with a contract
-const thread = await connection.start('order_fulfillment', 'merchant');
+// Or start with a contract and a label
+const thread = await connection.start('Order-789', 'order_fulfillment');
 ```
 </Tab>
 <Tab title="Go">
 ```go
-// Start tracking a workflow
-thread, err := conn.Start(ctx)
+// Start tracking a workflow with a label
+thread, err := conn.Start(ctx, "Order-123", "")
 if err != nil {
     log.Fatal(err)
 }
 
-// Or start with a contract
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
+// Or start with a contract and a label
+thread, err := conn.Start(ctx, "Order-789", "order_fulfillment")
 if err != nil {
     log.Fatal(err)
 }

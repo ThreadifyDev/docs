@@ -10,11 +10,11 @@ A thread represents a workflow execution instance (e.g., an order, a support tic
 <CodeGroup>
 
 ```javascript JavaScript
-const thread = await threadify.start();
+const thread = await threadify.start('User-Onboarding-cust-123');
 ```
 
 ```go Go
-thread, err := conn.Start(ctx)
+thread, err := conn.Start(ctx, "User-Onboarding-cust-123", "")
 if err != nil {
     log.Fatal(err)
 }

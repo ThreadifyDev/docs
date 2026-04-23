@@ -16,28 +16,22 @@ Start a thread with a contract to enable automatic validation:
 <CodeGroup>
 
 ```javascript JavaScript
-// Use latest version (recommended)
-const thread = await threadify.start('order_fulfillment', 'merchant');
+// Use latest version with a label (recommended)
+const thread = await threadify.start('Order-123', 'order_fulfillment');
 
-// Use specific version
-const thread = await threadify.start('order_fulfillment:2', 'merchant');
+// Use specific version with a label
+const thread = await threadify.start('Order-123', 'order_fulfillment:2');
 ```
 
 ```go Go
-// Use latest version (recommended)
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
+// Use latest version with a label (recommended)
+thread, err := conn.Start(ctx, "Order-123", "order_fulfillment")
 if err != nil {
     log.Fatal(err)
 }
 
-// Use specific version
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment:2"),
-    threadify.WithRole("merchant"),
-)
+// Use specific version with a label
+thread, err := conn.Start(ctx, "Order-123", "order_fulfillment:2")
 if err != nil {
     log.Fatal(err)
 }

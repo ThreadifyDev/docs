@@ -27,8 +27,8 @@ description: Linking threads to external system identifiers
 <Tab title="Node.js">
 ```javascript
 // Add references at thread creation
-const thread = await threadify.start('order_fulfillment', 'merchant', {
-  external_refs: {
+const thread = await threadify.start('Order-Processing-ORD-12345', 'order_fulfillment', {
+  refs: {
     orderId: 'ORDER-12345',
     customerId: 'CUST-789',
     stripePaymentId: 'pi_abc123'
@@ -38,11 +38,8 @@ const thread = await threadify.start('order_fulfillment', 'merchant', {
 </Tab>
 <Tab title="Go">
 ```go
-// Start thread
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
+// Start thread with a label and contract
+thread, err := conn.Start(ctx, "Order-Processing-ORD-12345", "order_fulfillment")
 if err != nil {
     log.Fatal(err)
 }

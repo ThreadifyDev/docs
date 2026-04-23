@@ -62,26 +62,23 @@ Threads are built by various contributors:
 <Tabs>
 <Tab title="Node.js">
 ```javascript
-// With contract validation
-const thread = await threadify.start('order_fulfillment', 'merchant');
+// With contract and label
+const thread = await threadify.start('Order-789', 'order_fulfillment');
 
-// Without contract (free-form)
-const freeThread = await threadify.start(null, 'merchant');
+// Without contract (free-form) with label
+const freeThread = await threadify.start('Prototyping-Workflow');
 ```
 </Tab>
 <Tab title="Go">
 ```go
-// With contract validation
-thread, err := conn.Start(ctx, 
-    threadify.WithContract("order_fulfillment"),
-    threadify.WithRole("merchant"),
-)
+// With contract and label
+thread, err := conn.Start(ctx, "Order-789", "order_fulfillment")
 if err != nil {
     log.Fatal(err)
 }
 
-// Without contract (free-form)
-freeThread, err := conn.Start(ctx, threadify.WithRole("merchant"))
+// Without contract (free-form) with label
+freeThread, err := conn.Start(ctx, "Prototyping-Workflow", "")
 if err != nil {
     log.Fatal(err)
 }

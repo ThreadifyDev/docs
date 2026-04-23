@@ -18,7 +18,7 @@ Manual completion is rejected for contract-based threads unless a terminal step 
 <CodeGroup>
 
 ```javascript JavaScript
-const thread = await threadify.start(); // No contract
+const thread = await threadify.start('Manual-Completion-Example'); // No contract
 
 // Record some steps
 await thread.step('process_order').success();
@@ -31,7 +31,7 @@ await thread.cancel('User cancelled order');
 ```
 
 ```go Go
-thread, _ := conn.Start(ctx) // No contract
+thread, _ := conn.Start(ctx, "Manual-Completion-Example", "") // No contract
 
 // Record some steps
 thread.Step("process_order").Success(ctx)
