@@ -1,0 +1,93 @@
+---
+title: "OpenTelemetry Integration"
+description: "Automatically generate business execution graphs from your existing OpenTelemetry traces."
+---
+
+Threadify is designed to be the bridge between deep technical observability and high-level business process monitoring. 
+
+If your application is already instrumented with OpenTelemetry (OTel), you do **not** need to manually add `thread.step()` calls throughout your codebase. Instead, you can use the Threadify OpenTelemetry Exporter to seamlessly translate your existing traces into Threadify execution graphs.
+
+## The Mapping Model
+
+The Threadify Exporter automatically translates the highly technical OTel hierarchy into business-friendly language:
+
+| OpenTelemetry Concept | Threadify Concept | Description |
+| :--- | :--- | :--- |
+| **Trace** | **Thread** | A Trace represents an entire business workflow (e.g., *Customer Checkout*). |
+| **Span** | **Step** | A Span represents a major operation (e.g., *process_payment*). |
+| **Span Event** | **Sub-Step** | An Event is a specific milestone during the operation (e.g., *validated_card*). |
+
+## 1. Setup the Exporter
+
+Integrating the exporter into your Node.js application takes just a few lines of code. You initialize the Exporter and register it with your global OpenTelemetry `TracerProvider`.
+
+```javascript
+import { Threadify } from '@threadify/sdk';
+import { trace } from '@opentelemetry/api';
+import { BasicTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+
+// 1. Establish your Threadify Connection
+const connection = await Threadify.connect('your-api-key', 'your-service');
+
+// 2. Create the Threadify Exporter
+// You can define which span attributes should be extracted as Threadify "Refs"
+const exporter = connection.createSpanExporter({
+  refs: ['order.id', 'customer.id'] 
+});
+
+// 3. Attach the Exporter to OpenTelemetry
+const provider = new BasicTracerProvider({
+  spanProcessors: [new SimpleSpanProcessor(exporter)]
+});
+trace.setGlobalTracerProvider(provider);
+```
+
+<Note>
+By default, the Exporter will automatically push Spans to Threadify whenever they end. It manages the underlying Threadify Thread lifecycles for you transparently.
+</Note>
+
+## 2. Using OpenTelemetry Natively
+
+Once configured, you simply use the standard OpenTelemetry API. You do not need to import or call Threadify directly in your business logic!
+
+```javascript
+// Get your standard OTel tracer
+const tracer = trace.getTracer('my-service-tracer');
+
+// Start a span (This automatically ensures a Thread exists in Threadify)
+const span = tracer.startSpan('process_payment');
+
+// Set explicit Threadify mapping overrides (Optional)
+// This tells Threadify to validate this thread against the 'payment_workflow' contract
+span.setAttribute('threadify.contract', 'payment_workflow'); 
+
+// Set attributes
+span.setAttribute('order.id', 'ORD-98765'); // Extracted as a Ref (based on setup)
+span.setAttribute('payment.amount', 42.50); // Extracted as standard Context
+
+// Add Span Events (These automatically become Threadify Sub-Steps!)
+span.addEvent('validated_credit_card', {
+  'card.type': 'visa',
+  'fraud.score': 0.05
+});
+
+// Simulate work...
+await processPayment();
+
+// End the span (This triggers the Exporter and pushes the Step to Threadify)
+span.end();
+```
+
+## Advanced Attributes (Optional)
+
+If you want finer control over how a specific Span maps to Threadify, you can set the following special `threadify.*` attributes on your Span. If omitted, the Exporter will use sensible defaults.
+
+| Attribute | Description | Default Fallback |
+| :--- | :--- | :--- |
+| `threadify.contract` | The Contract Name to validate this workflow against. | `null` (Schema-less Thread) |
+| `threadify.step_name` | Override the Step name in Threadify. | Uses `span.name` |
+| `threadify.thread_id` | Force the Span to attach to a specific existing Thread ID. | Auto-generates a new Thread per Trace |
+| `threadify.label` | The human-readable label for the Thread. | Uses `span.name` |
+| `threadify.service` | Override the service name that executed this step. | Uses the connection's default service |
+
+Any attributes starting with `threadify.ref.*` or `threadify.context.*` will be explicitly mapped to references or context respectively, bypassing the default configuration rules.
