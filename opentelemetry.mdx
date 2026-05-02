@@ -16,6 +16,21 @@ The Threadify Exporter automatically translates the highly technical OTel hierar
 | **Trace** | **Thread** | A Trace represents an entire business workflow (e.g., *Customer Checkout*). |
 | **Span** | **Step** | A Span represents a major operation (e.g., *process_payment*). |
 | **Span Event** | **Sub-Step** | An Event is a specific milestone during the operation (e.g., *validated_card*). |
+| **Span Link** | **Link** | *Coming Soon.* |
+
+## Status Mapping
+
+The Exporter automatically translates the OpenTelemetry `SpanStatus` into Threadify step outcomes. This ensures that technical failures (and even ambiguous states) are correctly captured as service delivery intelligence.
+
+| Span Status | Threadify Outcome | Rationale |
+| :--- | :--- | :--- |
+| `SpanStatus.OK` | **success** | Explicitly marked as successful by the developer. |
+| `SpanStatus.ERROR` | **failed** | Explicitly marked as a failure or exception. |
+| `SpanStatus.UNSET` | **success** | The default status. Threadify treats "no error" as a successful delivery. |
+
+<Note>
+By following the standard OpenTelemetry convention where `UNSET` implies success, Threadify ensures zero-friction integration for existing instrumented applications.
+</Note>
 
 ## 1. Setup the Exporter
 
