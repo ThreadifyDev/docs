@@ -43,6 +43,19 @@ thread.Complete(ctx, "All steps finished")
 thread.Cancel(ctx, "User cancelled order")
 ```
 
+```python Python
+thread = await connection.start("Manual-Completion-Example")  # No contract
+
+# Record some steps
+await thread.step("process_order").success()
+await thread.step("send_email").success()
+
+# Manually end the thread
+await thread.complete("All steps finished")
+# OR
+await thread.close("User cancelled order")
+```
+
 </CodeGroup>
 
 
@@ -63,6 +76,14 @@ thread.Cancel(ctx, "User cancelled order")
 |--------|-------------|------------|
 | `Complete(ctx, reason?)` | Mark thread as successfully completed | `ctx` (context.Context), `reason` (string, optional) |
 | `Cancel(ctx, reason?)` | Mark thread as cancelled | `ctx` (context.Context), `reason` (string, optional) |
+
+</Tab>
+<Tab title="Python">
+
+| Method | Description | Parameters |
+|--------|-------------|------------|
+| `complete(reason?)` | Mark thread as successfully completed | `reason` (string/dict, optional) |
+| `close(reason?)` | Mark thread as cancelled | `reason` (string/dict, optional) |
 
 </Tab>
 </Tabs>

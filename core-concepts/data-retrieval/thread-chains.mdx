@@ -29,6 +29,14 @@ for _, t := range chain {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+chain = await conn.get_thread_chain(start_thread_id, max_depth=3)
+
+for t in chain:
+    print("Thread ID:", t.id)
+```
+</Tab>
 </Tabs>
 
 ## Parameters

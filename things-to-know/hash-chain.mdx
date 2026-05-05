@@ -55,6 +55,19 @@ for _, step := range steps {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Verify hash chain integrity
+archived_thread = await conn.get_thread("thread-uuid")
+steps = await archived_thread.steps()
+
+for step in steps:
+    if step.verified:
+        print(f"{step.step_name}: Verified ✓")
+    else:
+        print(f"{step.step_name}: Chain broken")
+```
+</Tab>
 </Tabs>
 
 ### Benefits

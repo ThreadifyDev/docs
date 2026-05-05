@@ -41,6 +41,20 @@ if err != nil {
 }
 ```
 
+```python Python
+# All steps
+steps = await archived_thread.steps()
+
+# Specific step
+order_steps = await archived_thread.steps(step_name="order_placed")
+
+# With filters
+failed_steps = await archived_thread.steps(
+    step_name="payment_processed",
+    status="failed"
+)
+```
+
 </CodeGroup>
 
 ### Filter Options
@@ -77,6 +91,12 @@ history, err := step.History(ctx)
 if err != nil {
     log.Fatal(err)
 }
+```
+
+```python Python
+from threadify.models import HistoryQueryOptions
+
+history = await step.history(HistoryQueryOptions(limit=100))
 ```
 
 </CodeGroup>

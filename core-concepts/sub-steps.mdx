@@ -63,6 +63,22 @@ if err != nil {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Track granular operations within a step
+payment_step = thread.step("payment_processed")
+
+try:
+    payment_step.sub_step("validate_card", {"cardType": "visa"}, "success")
+    payment_step.sub_step("check_fraud", {"fraudScore": 0.15}, "success")
+    payment_step.sub_step("authorize_payment", {"authCode": "AUTH-123"}, "success")
+
+    await payment_step.add_context({"totalAmount": 299.99}).success()
+except Exception as error:
+    payment_step.sub_step("error_handler", {"error": str(error)}, "failed")
+    await payment_step.failed({"message": "Payment failed"})
+```
+</Tab>
 </Tabs>
 #### Properties
 
@@ -83,6 +99,15 @@ if err != nil {
 | `context` | map[string]any | No | `nil` | Additional data for the sub-step |
 | `status` | string | No | `"success"` | Either `"success"` or `"failed"` |
 
+
+</Tab>
+<Tab title="Python">
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `name` | string | Yes | - | Sub-step identifier |
+| `context` | dict | No | `{}` | Additional data for the sub-step |
+| `status` | string | No | `'success'` | Either `'success'` or `'failed'` |
 
 </Tab>
 </Tabs>

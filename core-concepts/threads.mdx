@@ -84,4 +84,13 @@ if err != nil {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# With contract and label
+thread = await connection.start("Order-789", contract_name="order_fulfillment")
+
+# Without contract (free-form) with label
+free_thread = await connection.start("Prototyping-Workflow")
+```
+</Tab>
 </Tabs>

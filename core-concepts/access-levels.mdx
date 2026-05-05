@@ -118,6 +118,29 @@ await logisticsThread.step('shipment_created')
 const warehouseThread = await threadify.join('thread-uuid', 'warehouse_manager');
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Invite external party
+from threadify.models import InviteOptions
+
+invitation = await thread.invite_party(
+    InviteOptions(role="logistics", expires_in="48h")
+)
+
+# External party joins with token
+logistics_thread = await connection.join(token=invitation.token)
+await (
+    logistics_thread.step("shipment_created")
+    .add_context({"trackingNumber": "1Z999AA10123456784"})
+    .success()
+)
+
+# Internal service joins directly
+warehouse_thread = await connection.join(
+    thread_id="thread-uuid", role="warehouse_manager"
+)
+```
+</Tab>
 </Tabs>
 
 ### Best Practices

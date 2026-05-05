@@ -35,6 +35,18 @@ if err != nil {
 }
 ```
 
+```python Python
+from threadify.models import RefQuery
+
+# By ID
+thread = await conn.get_thread("thread-uuid")
+
+# By external reference
+threads = await conn.get_threads_by_ref(
+    RefQuery(ref_key="stripe_payment_id", ref_value="pi_1234567890")
+)
+```
+
 </CodeGroup>
 
 ### Query Options

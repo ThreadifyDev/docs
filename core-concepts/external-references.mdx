@@ -68,6 +68,24 @@ if err != nil {
 }
 ```
 
+```python Python
+payment = await process_stripe_payment()
+
+# Add references at thread level
+await thread.add_refs({
+    "stripe_payment_id": payment.id,
+    "stripe_customer_id": payment.customer,
+    "order_id": "ORD-12345"
+})
+
+# Then record the step with context
+await (
+    thread.step("process_payment")
+    .add_context({"amount": 299.99, "currency": "USD"})
+    .success()
+)
+```
+
 </CodeGroup>
 
 ### Querying by Reference
@@ -89,6 +107,14 @@ threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
 if err != nil {
     log.Fatal(err)
 }
+```
+
+```python Python
+from threadify.models import RefQuery
+
+threads = await conn.get_threads_by_ref(
+    RefQuery(ref_key="stripe_payment_id", ref_value="pi_1234567890")
+)
 ```
 
 </CodeGroup>

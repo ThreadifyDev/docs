@@ -25,6 +25,16 @@ if err != nil {
 defer conn.Close()
 ```
 
+```python Python
+from threadify import Threadify
+
+# Connect with your API key and service name
+connection = await Threadify.connect(
+    "your-api-key",
+    service_name="my-service",
+)
+```
+
 </CodeGroup>
 
 ### Parameters

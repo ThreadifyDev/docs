@@ -29,6 +29,14 @@ if err != nil {
 }
 ```
 
+```python Python
+# Unsubscribe from specific step event
+connection.unsubscribe("step.success", "order_placed")
+
+# Unsubscribe from thread-level event
+connection.unsubscribe("thread.completed")
+```
+
 </CodeGroup>
 
 ### When to Unsubscribe

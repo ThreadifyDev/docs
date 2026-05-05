@@ -31,6 +31,17 @@ if err != nil {
 fmt.Println("Token:", invitation.Token)
 ```
 
+```python Python
+from threadify.models import InviteOptions
+
+invitation = await thread.invite_party(
+    InviteOptions(role="participant", access_level="participant", expires_in="48h")
+)
+
+# Share invitation.token with the other party
+print("Token:", invitation.token)
+```
+
 </CodeGroup>
 
 ### Parameters

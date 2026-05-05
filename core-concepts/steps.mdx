@@ -71,6 +71,24 @@ if err != nil {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Create step first, then execute business logic
+payment_step = thread.step("payment_processed")
+try:
+    payment = await process_payment(order_id)
+    await (
+        payment_step
+        .add_context({"amount": payment.amount, "transactionId": payment.id})
+        .success()
+    )
+except Exception as error:
+    await payment_step.failed({
+        "message": str(error),
+        "errorCode": "PAYMENT_FAILED"
+    })
+```
+</Tab>
 </Tabs>
 
 ## Best Practices

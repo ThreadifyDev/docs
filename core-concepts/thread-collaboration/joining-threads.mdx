@@ -32,6 +32,17 @@ if err != nil {
 }
 ```
 
+```python Python
+# With invitation token (external partners)
+thread = await connection.join(token=invitation_token)
+
+# Direct join (internal services)
+thread = await connection.join(
+    thread_id="thread-uuid",
+    role="logistics",
+)
+```
+
 </CodeGroup>
 
 ### Parameters

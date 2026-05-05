@@ -20,6 +20,10 @@ if err != nil {
 }
 ```
 
+```python Python
+thread = await connection.start("User-Onboarding-cust-123")
+```
+
 </CodeGroup>
 
 ### Recording Steps
@@ -52,6 +56,16 @@ _, err = step.AddContext(map[string]any{"orderId": order.ID, "total": order.Tota
 if err != nil {
     log.Fatal(err)
 }
+```
+
+```python Python
+step = thread.step("order_received")
+
+# Execute business logic
+order = await receive_order()
+
+# Record success with context
+await step.add_context({"orderId": order.id, "total": order.total}).success()
 ```
 
 </CodeGroup>

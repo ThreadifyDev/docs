@@ -25,6 +25,16 @@ if err != nil {
 }
 ```
 
+```python Python
+from threadify import Threadify
+
+connection = await Threadify.connect(
+    "your-api-key",
+    service_name="my-service",
+    max_in_flight=50,  # Default: 10, Max: 100
+)
+```
+
 </CodeGroup>
 
 Notifications are **HPA-safe** - each delivered to exactly one pod in your cluster.
@@ -93,6 +103,29 @@ err = conn.Subscribe(ctx, "rule.violated", "product_delivery@order_placed", func
 if err != nil {
     log.Fatal(err)
 }
+```
+
+```python Python
+# Thread events
+def on_thread_completed(notification):
+    print("Thread completed")
+    notification.ack()
+
+connection.subscribe("thread.completed", on_thread_completed)
+
+# Step events (specify step name)
+def on_payment_failed(notification):
+    print(f"Payment failed: {notification.message}")
+    notification.ack()
+
+connection.subscribe("step.failed", "payment_processed", on_payment_failed)
+
+# Contract-specific (use @ syntax)
+def on_contract_violation(notification):
+    print(f"Contract violation: {notification.message}")
+    notification.ack()
+
+connection.subscribe("rule.violated", "product_delivery@order_placed", on_contract_violation)
 ```
 
 </CodeGroup>

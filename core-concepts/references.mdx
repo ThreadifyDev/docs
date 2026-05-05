@@ -55,6 +55,27 @@ if err != nil {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Start thread with a label and contract
+thread = await connection.start(
+    "Order-Processing-ORD-12345",
+    contract_name="order_fulfillment",
+    refs={
+        "orderId": "ORDER-12345",
+        "customerId": "CUST-789",
+        "stripePaymentId": "pi_abc123"
+    }
+)
+
+# Or add references after creation
+await thread.add_refs({
+    "orderId": "ORDER-12345",
+    "customerId": "CUST-789",
+    "stripePaymentId": "pi_abc123"
+})
+```
+</Tab>
 </Tabs>
 
 ### Querying by References
@@ -94,6 +115,21 @@ customerThreads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
 if err != nil {
     log.Fatal(err)
 }
+```
+</Tab>
+<Tab title="Python">
+```python
+from threadify.models import RefQuery
+
+# Query threads by reference
+threads = await conn.get_threads_by_ref(
+    RefQuery(ref_key="orderId", ref_value="ORDER-12345")
+)
+
+# Find by customer ID
+customer_threads = await conn.get_threads_by_ref(
+    RefQuery(ref_key="customerId", ref_value="CUST-456")
+)
 ```
 </Tab>
 </Tabs>

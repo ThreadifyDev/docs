@@ -120,5 +120,44 @@ await thread.step('order_placed')
 // Violations trigger WebSocket notifications to authorized members
 ```
 </Tab>
+<Tab title="Go">
+```go
+// Use latest contract version with a label
+thread, err := conn.Start(ctx, "Order-123", "order_fulfillment")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Or specific version with a label
+threadV2, err := conn.Start(ctx, "Order-123", "order_fulfillment:2")
+if err != nil {
+    log.Fatal(err)
+}
+
+// Contract validates entry points, required fields, and transitions
+_, err = thread.Step("order_placed").
+    AddContext(map[string]any{"order_id": "ORD-123", "product_id": "PROD-456", "quantity": 2}).
+    Success(ctx)
+if err != nil {
+    log.Fatal(err)
+}
+```
+</Tab>
+<Tab title="Python">
+```python
+# Use latest contract version with a label
+thread = await connection.start("Order-123", contract_name="order_fulfillment")
+
+# Or specific version with a label
+thread_v2 = await connection.start("Order-123", contract_name="order_fulfillment:2")
+
+# Contract validates entry points, required fields, and transitions
+await (
+    thread.step("order_placed")
+    .add_context({"order_id": "ORD-123", "product_id": "PROD-456", "quantity": 2})
+    .success()
+)
+```
+</Tab>
 </Tabs>
 

@@ -34,6 +34,18 @@ if err != nil {
 }
 ```
 
+```python Python
+def on_violation(notification):
+    try:
+        process_violation(notification)
+        notification.ack()  # ACK on success
+    except Exception:
+        # Don't ACK - notification redelivered after 30s (max 3 attempts)
+        pass
+
+connection.subscribe("rule.violated", "order_placed", on_violation)
+```
+
 </CodeGroup>
 
 ### Retry Behavior

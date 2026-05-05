@@ -35,7 +35,8 @@
           "group": "Installation",
           "pages": [
             "core-concepts/installation/javascript",
-            "core-concepts/installation/go"
+            "core-concepts/installation/go",
+            "core-concepts/installation/python"
           ]
         },
         "core-concepts/connecting",

@@ -16,6 +16,11 @@ npm install @threadify/sdk
 go get github.com/ThreadifyDev/go-sdk
 ```
 </Tab>
+<Tab title="Python">
+```bash
+pip install threadify-sdk
+```
+</Tab>
 </Tabs>
 
 ## 2. Connect to Threadify
@@ -45,6 +50,17 @@ if err != nil {
 defer conn.Close()
 ```
 </Tab>
+<Tab title="Python">
+```python
+from threadify import Threadify
+
+# Connect with your API key and service name
+connection = await Threadify.connect(
+    "your-api-key",
+    service_name="my-service",
+)
+```
+</Tab>
 </Tabs>
 
 ## 3. Create Your First Thread
@@ -72,6 +88,15 @@ thread, err := conn.Start(ctx, "Order-789", "order_fulfillment")
 if err != nil {
     log.Fatal(err)
 }
+```
+</Tab>
+<Tab title="Python">
+```python
+# Start tracking a workflow with a label
+thread = await connection.start("Order-123")
+
+# Or start with a contract and a label
+thread = await connection.start("Order-789", contract_name="order_fulfillment")
 ```
 </Tab>
 </Tabs>
@@ -128,6 +153,33 @@ if err != nil {
 }
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Create step first, then execute business logic
+order_step = thread.step("order_received")
+order = await receive_order()
+await (
+    order_step
+    .add_context({"orderId": "ORD-123", "total": 299.99})
+    .success()
+)
+
+inventory_step = thread.step("inventory_checked")
+inventory = await check_inventory(order.items)
+await (
+    inventory_step
+    .add_context({"inStock": True, "warehouse": "US-EAST"})
+    .success()
+)
+
+# Or chain them together
+await (
+    thread.step("payment_processed")
+    .add_context({"amount": 299.99, "currency": "USD"})
+    .success()
+)
+```
+</Tab>
 </Tabs>
 
 ## 5. Handle Failures
@@ -167,6 +219,20 @@ _, err = paymentStep.AddContext(payment).Success(ctx)
 if err != nil {
     log.Fatal(err)
 }
+```
+</Tab>
+<Tab title="Python">
+```python
+# Create step first to track execution time
+payment_step = thread.step("payment_processed")
+try:
+    payment = await process_payment(order_id)
+    await payment_step.add_context(payment).success()
+except Exception as error:
+    await payment_step.failed({
+        "message": "Payment gateway timeout",
+        "errorCode": "TIMEOUT"
+    })
 ```
 </Tab>
 </Tabs>
@@ -225,6 +291,30 @@ err = conn.Subscribe(ctx, "rule.violated", "product_delivery@order_placed", func
 if err != nil {
     log.Fatal(err)
 }
+```
+</Tab>
+<Tab title="Python">
+```python
+# Listen for execution events
+def on_payment_success(event):
+    print("Payment processed - update UI, send confirmation email")
+    event.ack()
+
+connection.subscribe("step.success", "payment_processed", on_payment_success)
+
+# Listen for validation violations
+def on_inventory_violation(event):
+    print("Inventory violation detected - escalate to ops")
+    event.ack()
+
+connection.subscribe("rule.violated", "inventory_check", on_inventory_violation)
+
+# Contract-specific events
+def on_contract_violation(event):
+    print("Product delivery rule violated - notify logistics")
+    event.ack()
+
+connection.subscribe("rule.violated", "product_delivery@order_placed", on_contract_violation)
 ```
 </Tab>
 </Tabs>

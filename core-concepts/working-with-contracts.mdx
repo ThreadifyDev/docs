@@ -37,6 +37,14 @@ if err != nil {
 }
 ```
 
+```python Python
+# Use latest version with a label (recommended)
+thread = await connection.start("Order-123", contract_name="order_fulfillment")
+
+# Use specific version with a label
+thread = await connection.start("Order-123", contract_name="order_fulfillment:2")
+```
+
 </CodeGroup>
 
 ### What Contracts Validate

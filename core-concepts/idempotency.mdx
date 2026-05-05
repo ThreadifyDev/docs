@@ -51,6 +51,24 @@ if err != nil {
 }
 ```
 
+```python Python
+# Auto-generated (default)
+await (
+    thread.step("validate_cart")
+    .add_context({"items": "3", "total": "99.99"})
+    .success()
+)
+
+# Manual key with external ID
+payment = await stripe.charges.create(amount=9999)
+await (
+    thread.step("charge_payment")
+    .idempotency_key(payment.id)
+    .add_context({"amount": "99.99"})
+    .success()
+)
+```
+
 </CodeGroup>
 
 ### Use Cases

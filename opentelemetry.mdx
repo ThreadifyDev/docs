@@ -34,7 +34,9 @@ By following the standard OpenTelemetry convention where `UNSET` implies success
 
 ## 1. Setup the Exporter
 
-Integrating the exporter into your Node.js application takes just a few lines of code. You initialize the Exporter and register it with your global OpenTelemetry `TracerProvider`.
+Integrating the exporter into your application takes just a few lines of code. You initialize the Exporter and register it with your global OpenTelemetry `TracerProvider`.
+
+### Node.js
 
 ```javascript
 import { Threadify } from '@threadify/sdk';
@@ -55,6 +57,84 @@ const provider = new BasicTracerProvider({
   spanProcessors: [new SimpleSpanProcessor(exporter)]
 });
 trace.setGlobalTracerProvider(provider);
+```
+
+### Go
+
+Because Go is statically typed, the OpenTelemetry integration is provided via a separate sub-module so the core Threadify SDK remains lightweight.
+
+```bash
+go get github.com/ThreadifyDev/go-sdk/otel
+```
+
+```go
+import (
+    "context"
+
+    "go.opentelemetry.io/otel"
+    sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
+    threadify "github.com/ThreadifyDev/go-sdk"
+    threadifyotel "github.com/ThreadifyDev/go-sdk/otel"
+)
+
+func main() {
+    ctx := context.Background()
+
+    // 1. Establish your Threadify Connection
+    conn, _ := threadify.Connect(ctx, "your-api-key",
+        threadify.WithServiceName("my-service"),
+    )
+    defer conn.Close()
+
+    // 2. Create the Threadify Exporter
+    exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+        Refs: []string{"order.id", "customer.id"},
+    })
+
+    // 3. Attach the Exporter to OpenTelemetry
+    provider := sdktrace.NewTracerProvider(
+        sdktrace.WithBatcher(exporter),
+    )
+    otel.SetTracerProvider(provider)
+    defer provider.Shutdown(ctx)
+
+    // ... your application code
+}
+```
+
+### Python
+
+The Python SDK includes the OpenTelemetry SpanExporter in the core package.
+
+```bash
+pip install opentelemetry-api opentelemetry-sdk
+```
+
+```python
+from opentelemetry import trace
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from threadify import Threadify
+
+async def main():
+    # 1. Establish your Threadify Connection
+    conn = await Threadify.connect(
+        "your-api-key",
+        service_name="my-service",
+    )
+
+    # 2. Create the Threadify Exporter
+    exporter = conn.create_span_exporter(
+        options={"refs": ["order.id", "customer.id"]}
+    )
+
+    # 3. Attach the Exporter to OpenTelemetry
+    provider = TracerProvider()
+    provider.add_span_processor(BatchSpanProcessor(exporter))
+    trace.set_tracer_provider(provider)
+
+    # ... your application code
 ```
 
 <Note>

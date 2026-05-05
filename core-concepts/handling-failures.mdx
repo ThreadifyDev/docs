@@ -42,6 +42,19 @@ if err != nil {
 }
 ```
 
+```python Python
+payment_step = thread.step("payment_processed")
+try:
+    payment = await process_payment(order_id)
+    await payment_step.add_context(payment).success()
+except Exception as error:
+    await payment_step.failed({
+        "message": str(error),
+        "errorCode": "PAYMENT_FAILED",
+        "retryable": True
+    })
+```
+
 </CodeGroup>
 
 ### Retry Tracking

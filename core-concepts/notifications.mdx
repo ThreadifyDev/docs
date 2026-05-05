@@ -52,6 +52,30 @@ connection.on('rule.violated', 'product_delivery@order_placed', (notification) =
 });
 ```
 </Tab>
+<Tab title="Python">
+```python
+# Subscribe to step execution events
+def on_order_placed(notification):
+    print("Order placed:", notification.context)
+    notification.ack()
+
+connection.subscribe("step.success", "order_placed", on_order_placed)
+
+# Subscribe to validation violations
+def on_inventory_violation(notification):
+    print("Inventory violation:", notification.message)
+    notification.ack()
+
+connection.subscribe("rule.violated", "inventory_check", on_inventory_violation)
+
+# Contract-specific notifications
+def on_contract_violation(notification):
+    print("Contract violation detected")
+    notification.ack()
+
+connection.subscribe("rule.violated", "product_delivery@order_placed", on_contract_violation)
+```
+</Tab>
 </Tabs>
 
 ### Event Processing
