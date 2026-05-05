@@ -106,47 +106,28 @@ thread = await connection.start("Order-789", contract_name="order_fulfillment")
 <Tabs>
 <Tab title="JavaScript">
 ```javascript
-// Create step first, then execute business logic
-const orderStep = thread.step('order_received');
-const order = await receiveOrder();
-await orderStep.addContext({ orderId: 'ORD-123', total: 299.99 }).success();
+// Create step first, then call methods on it
+const step = thread.step('validate_input');
+await step.addContext({ userId: 'user-123' }).success();
 
-const inventoryStep = thread.step('inventory_checked');
-const inventory = await checkInventory(order.items);
-await inventoryStep.addContext({ inStock: true, warehouse: 'US-EAST' }).success();
-
-// Or chain them together
-await thread.step('payment_processed')
-  .addContext({ amount: 299.99, currency: 'USD' })
+// Or chain directly on the step builder
+await thread.step('process_data')
+  .addContext({ records: 42 })
   .success();
 ```
 </Tab>
 <Tab title="Go">
 ```go
-// Create step first, then execute business logic
-orderStep := thread.Step("order_received")
-order, err := receiveOrder()
-if err != nil {
-    log.Fatal(err)
-}
-_, err = orderStep.AddContext(map[string]any{"orderId": "ORD-123", "total": 299.99}).Success(ctx)
+// Create step first, then call methods on it
+step := thread.Step("validate_input")
+_, err := step.AddContext(map[string]any{"userId": "user-123"}).Success(ctx)
 if err != nil {
     log.Fatal(err)
 }
 
-inventoryStep := thread.Step("inventory_checked")
-inventory, err := checkInventory(order.Items)
-if err != nil {
-    log.Fatal(err)
-}
-_, err = inventoryStep.AddContext(map[string]any{"inStock": true, "warehouse": "US-EAST"}).Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Or chain them together
-_, err = thread.Step("payment_processed").
-    AddContext(map[string]any{"amount": 299.99, "currency": "USD"}).
+// Or chain directly on the step builder
+_, err = thread.Step("process_data").
+    AddContext(map[string]any{"records": 42}).
     Success(ctx)
 if err != nil {
     log.Fatal(err)
@@ -155,27 +136,14 @@ if err != nil {
 </Tab>
 <Tab title="Python">
 ```python
-# Create step first, then execute business logic
-order_step = thread.step("order_received")
-order = await receive_order()
-await (
-    order_step
-    .add_context({"orderId": "ORD-123", "total": 299.99})
-    .success()
-)
+# Create step first, then call methods on it
+step = thread.step("validate_input")
+await step.add_context({"userId": "user-123"}).success()
 
-inventory_step = thread.step("inventory_checked")
-inventory = await check_inventory(order.items)
+# Or chain directly on the step builder
 await (
-    inventory_step
-    .add_context({"inStock": True, "warehouse": "US-EAST"})
-    .success()
-)
-
-# Or chain them together
-await (
-    thread.step("payment_processed")
-    .add_context({"amount": 299.99, "currency": "USD"})
+    thread.step("process_data")
+    .add_context({"records": 42})
     .success()
 )
 ```

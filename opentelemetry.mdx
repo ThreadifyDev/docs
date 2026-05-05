@@ -36,7 +36,8 @@ By following the standard OpenTelemetry convention where `UNSET` implies success
 
 Integrating the exporter into your application takes just a few lines of code. You initialize the Exporter and register it with your global OpenTelemetry `TracerProvider`.
 
-### Node.js
+<Tabs>
+<Tab title="Node.js">
 
 ```javascript
 import { Threadify } from '@threadify/sdk';
@@ -47,9 +48,9 @@ import { BasicTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-tra
 const connection = await Threadify.connect('your-api-key', 'your-service');
 
 // 2. Create the Threadify Exporter
-// You can define which span attributes should be extracted as Threadify "Refs"
+// Map span attributes to Threadify "Refs" using custom ref keys
 const exporter = connection.createSpanExporter({
-  refs: ['order.id', 'customer.id'] 
+  refs: { orderId: 'order.id', customerId: 'customer.id' }
 });
 
 // 3. Attach the Exporter to OpenTelemetry
@@ -59,7 +60,8 @@ const provider = new BasicTracerProvider({
 trace.setGlobalTracerProvider(provider);
 ```
 
-### Go
+</Tab>
+<Tab title="Go">
 
 Because Go is statically typed, the OpenTelemetry integration is provided via a separate sub-module so the core Threadify SDK remains lightweight.
 
@@ -89,7 +91,7 @@ func main() {
 
     // 2. Create the Threadify Exporter
     exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
-        Refs: []string{"order.id", "customer.id"},
+        Refs: map[string]string{"orderId": "order.id", "customerId": "customer.id"},
     })
 
     // 3. Attach the Exporter to OpenTelemetry
@@ -103,7 +105,8 @@ func main() {
 }
 ```
 
-### Python
+</Tab>
+<Tab title="Python">
 
 The Python SDK includes the OpenTelemetry SpanExporter in the core package.
 
@@ -126,7 +129,7 @@ async def main():
 
     # 2. Create the Threadify Exporter
     exporter = conn.create_span_exporter(
-        options={"refs": ["order.id", "customer.id"]}
+        options={"refs": {"orderId": "order.id", "customerId": "customer.id"}}
     )
 
     # 3. Attach the Exporter to OpenTelemetry
@@ -137,6 +140,9 @@ async def main():
     # ... your application code
 ```
 
+</Tab>
+</Tabs>
+
 <Note>
 By default, the Exporter will automatically push Spans to Threadify whenever they end. It manages the underlying Threadify Thread lifecycles for you transparently.
 </Note>
@@ -144,6 +150,9 @@ By default, the Exporter will automatically push Spans to Threadify whenever the
 ## 2. Using OpenTelemetry Natively
 
 Once configured, you simply use the standard OpenTelemetry API. You do not need to import or call Threadify directly in your business logic!
+
+<Tabs>
+<Tab title="Node.js">
 
 ```javascript
 // Get your standard OTel tracer
@@ -154,7 +163,7 @@ const span = tracer.startSpan('process_payment');
 
 // Set explicit Threadify mapping overrides (Optional)
 // This tells Threadify to validate this thread against the 'payment_workflow' contract
-span.setAttribute('threadify.contract', 'payment_workflow'); 
+span.setAttribute('threadify.contract', 'payment_workflow');
 
 // Set attributes
 span.setAttribute('order.id', 'ORD-98765'); // Extracted as a Ref (based on setup)
@@ -172,6 +181,79 @@ await processPayment();
 // End the span (This triggers the Exporter and pushes the Step to Threadify)
 span.end();
 ```
+
+</Tab>
+<Tab title="Go">
+
+```go
+import (
+    "context"
+
+    "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/attribute"
+    "go.opentelemetry.io/otel/trace"
+)
+
+// Get your standard OTel tracer
+tracer := otel.Tracer("my-service-tracer")
+
+// Start a span (This automatically ensures a Thread exists in Threadify)
+ctx, span := tracer.Start(context.Background(), "process_payment")
+
+// Set explicit Threadify mapping overrides (Optional)
+// This tells Threadify to validate this thread against the 'payment_workflow' contract
+span.SetAttributes(attribute.String("threadify.contract", "payment_workflow"))
+
+// Set attributes
+span.SetAttributes(attribute.String("order.id", "ORD-98765"))       // Extracted as a Ref (based on setup)
+span.SetAttributes(attribute.Float64("payment.amount", 42.50))     // Extracted as standard Context
+
+// Add Span Events (These automatically become Threadify Sub-Steps!)
+span.AddEvent("validated_credit_card", trace.WithAttributes(
+    attribute.String("card.type", "visa"),
+    attribute.Float64("fraud.score", 0.05),
+))
+
+// Simulate work...
+processPayment(ctx)
+
+// End the span (This triggers the Exporter and pushes the Step to Threadify)
+span.End()
+```
+
+</Tab>
+<Tab title="Python">
+
+```python
+from opentelemetry import trace
+
+# Get your standard OTel tracer
+tracer = trace.get_tracer("my-service-tracer")
+
+# Start a span (This automatically ensures a Thread exists in Threadify)
+with tracer.start_as_current_span("process_payment") as span:
+    # Set explicit Threadify mapping overrides (Optional)
+    # This tells Threadify to validate this thread against the 'payment_workflow' contract
+    span.set_attribute("threadify.contract", "payment_workflow")
+
+    # Set attributes
+    span.set_attribute("order.id", "ORD-98765")       # Extracted as a Ref (based on setup)
+    span.set_attribute("payment.amount", 42.50)     # Extracted as standard Context
+
+    # Add Span Events (These automatically become Threadify Sub-Steps!)
+    span.add_event("validated_credit_card", {
+        "card.type": "visa",
+        "fraud.score": 0.05,
+    })
+
+    # Simulate work...
+    process_payment()
+
+    # Span ends automatically (This triggers the Exporter)
+```
+
+</Tab>
+</Tabs>
 
 ## Advanced Attributes (Optional)
 
