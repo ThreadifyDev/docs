@@ -1,9 +1,9 @@
 ---
 title: "OpenTelemetry Integration"
-description: "Automatically generate service delivery graphs from your existing OpenTelemetry traces."
+description: "Automatically generate service-delivery graphs from your existing OpenTelemetry traces."
 ---
 
-Threadify is a service delivery intelligence system. The Threadify SDK supports converting standard OpenTelemetry (OTel) traces into Threadify's service delivery concepts, thereby providing deep, actionable intelligence into exactly how you are delivering to your customers.
+Threadify is a service-delivery intelligence system. The Threadify SDK supports converting standard OpenTelemetry (OTel) traces into Threadify's service-delivery concepts, thereby providing deep, actionable intelligence into exactly how you are delivering to your customers.
 
 If your application is already instrumented with OpenTelemetry (OTel), you do **not** need to manually add `thread.step()` calls throughout your codebase. Instead, you can use the Threadify OpenTelemetry Exporter to seamlessly translate your existing traces into Threadify execution graphs.
 
@@ -20,7 +20,7 @@ The Threadify Exporter automatically translates the highly technical OTel hierar
 
 ## Status Mapping
 
-The Exporter automatically translates the OpenTelemetry `SpanStatus` into Threadify step outcomes. This ensures that technical failures (and even ambiguous states) are correctly captured as service delivery intelligence.
+The Exporter automatically translates the OpenTelemetry `SpanStatus` into Threadify step outcomes. This ensures that technical failures (and even ambiguous states) are correctly captured as service-delivery intelligence.
 
 | Span Status | Threadify Outcome | Rationale |
 | :--- | :--- | :--- |
