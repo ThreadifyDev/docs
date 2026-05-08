@@ -8,24 +8,24 @@ description: 'Join threads using invitations or direct access'
 <CodeGroup>
 
 ```javascript JavaScript
-// With invitation token (external partners)
-const thread = await threadify.join(invitationToken);
+// With invitation token (accessLevel comes from the invite)
+const thread = await connection.join(invitationToken);
 
-// Direct join (internal services)
-const thread = await threadify.join('thread-uuid', 'logistics');
+// Direct join (internal services; accessLevel defaults to participant)
+const thread = await connection.join('thread-uuid', 'logistics');
 ```
 
 ```go Go
-// With invitation token (external partners)
+// With invitation token (accessLevel comes from the invite)
 thread, err := conn.Join(ctx, threadify.WithJoinToken(invitationToken))
 if err != nil {
     log.Fatal(err)
 }
 
-// Direct join (internal services)
-thread, err := conn.Join(ctx, 
-    threadify.WithJoinThreadID(\"thread-uuid\"),
-    threadify.WithJoinRole(\"logistics\"),
+// Direct join (internal services; accessLevel defaults to participant)
+thread, err := conn.Join(ctx,
+    threadify.WithJoinThreadID("thread-uuid"),
+    threadify.WithJoinRole("logistics"),
 )
 if err != nil {
     log.Fatal(err)
@@ -33,10 +33,10 @@ if err != nil {
 ```
 
 ```python Python
-# With invitation token (external partners)
+# With invitation token (accessLevel comes from the invite)
 thread = await connection.join(token=invitation_token)
 
-# Direct join (internal services)
+# Direct join (internal services; accessLevel defaults to participant)
 thread = await connection.join(
     thread_id="thread-uuid",
     role="logistics",
@@ -50,7 +50,7 @@ thread = await connection.join(
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `tokenOrThreadId` | string | Invitation token or thread ID |
-| `role` | string | Role (required for direct join) |
+| `role` | string | Business/contract role (required for direct join only, e.g., `"logistics"`, `"supplier"`) |
 
 ### Thread Properties
 

@@ -9,8 +9,8 @@ description: 'Invite external parties to collaborate on threads'
 
 ```javascript JavaScript
 const invitation = await thread.inviteParty({
-  role: 'participant',
-  accessLevel: 'participant',
+  role: 'logistics',
+  accessLevel: Threadify.FOR_EXTERNAL,
   expiresIn: '48h'
 });
 
@@ -19,8 +19,8 @@ const invitation = await thread.inviteParty({
 
 ```go Go
 invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
-    Role:        "participant",
-    AccessLevel: "participant",
+    Role:        "logistics",
+    AccessLevel: threadify.ForExternal,
     ExpiresIn:   "48h",
 })
 if err != nil {
@@ -32,10 +32,11 @@ fmt.Println("Token:", invitation.Token)
 ```
 
 ```python Python
+from threadify import Threadify
 from threadify.models import InviteOptions
 
 invitation = await thread.invite_party(
-    InviteOptions(role="participant", access_level="participant", expires_in="48h")
+    InviteOptions(role="logistics", access_level=Threadify.FOR_EXTERNAL, expires_in="48h")
 )
 
 # Share invitation.token with the other party
@@ -48,9 +49,9 @@ print("Token:", invitation.token)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `role` | string | required | System role (`owner`, `participant`, `observer`, `external`) |
-| `accessLevel` | string | `'external'` | Permission level |
-| `expiresIn` | string | `'24h'` | Token expiration (e.g., '24h', '7d') |
+| `role` | string | required | Business/contract role (e.g., `"logistics"`, `"supplier"`, `"merchant"`) |
+| `accessLevel` | string | `'external'` | Permission level. Use SDK enums: `Threadify.FOR_EXTERNAL` (default), `Threadify.FOR_OBSERVER`, `Threadify.FOR_PARTICIPANT` |
+| `expiresIn` | string | `'24h'` | Token expiration (e.g., `'24h'`, `'7d'`) |
 
 ### Invitation Properties
 

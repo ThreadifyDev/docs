@@ -102,32 +102,56 @@ description: Controlling who can view and interact with threads
 <Tabs>
 <Tab title="Node.js">
 ```javascript
-// Invite external party
+// Invite external party as observer
 const invitation = await thread.inviteParty({
   role: 'logistics',
+  accessLevel: Threadify.FOR_OBSERVER,
   expiresIn: '48h'
 });
 
-// External party joins with token
-const logisticsThread = await threadify.join(invitation.token);
+// External party joins with token (accessLevel comes from the invite)
+const logisticsThread = await connection.join(invitation.token);
 await logisticsThread.step('shipment_created')
   .addContext({ trackingNumber: '1Z999AA10123456784' })
   .success();
 
-// Internal service joins directly
-const warehouseThread = await threadify.join('thread-uuid', 'warehouse_manager');
+// Internal service joins directly (accessLevel defaults to participant)
+const warehouseThread = await connection.join('thread-uuid', 'warehouse');
+```
+</Tab>
+<Tab title="Go">
+```go
+// Invite external party as observer
+invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
+    Role:        "logistics",
+    AccessLevel: threadify.ForObserver,
+    ExpiresIn:   "48h",
+})
+
+// External party joins with token (accessLevel comes from the invite)
+logisticsThread, err := conn.Join(ctx, threadify.WithJoinToken(invitation.Token))
+_ = logisticsThread.Step("shipment_created").
+    AddContext(map[string]any{"trackingNumber": "1Z999AA10123456784"}).
+    Success(ctx)
+
+// Internal service joins directly (accessLevel defaults to participant)
+warehouseThread, err := conn.Join(ctx,
+    threadify.WithJoinThreadID("thread-uuid"),
+    threadify.WithJoinRole("warehouse"),
+)
 ```
 </Tab>
 <Tab title="Python">
 ```python
-# Invite external party
+# Invite external party as observer
+from threadify import Threadify
 from threadify.models import InviteOptions
 
 invitation = await thread.invite_party(
-    InviteOptions(role="logistics", expires_in="48h")
+    InviteOptions(role="logistics", access_level=Threadify.FOR_OBSERVER, expires_in="48h")
 )
 
-# External party joins with token
+# External party joins with token (accessLevel comes from the invite)
 logistics_thread = await connection.join(token=invitation.token)
 await (
     logistics_thread.step("shipment_created")
@@ -135,9 +159,9 @@ await (
     .success()
 )
 
-# Internal service joins directly
+# Internal service joins directly (accessLevel defaults to participant)
 warehouse_thread = await connection.join(
-    thread_id="thread-uuid", role="warehouse_manager"
+    thread_id="thread-uuid", role="warehouse"
 )
 ```
 </Tab>
