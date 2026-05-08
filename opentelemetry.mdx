@@ -53,6 +53,12 @@ const exporter = connection.createSpanExporter({
   refs: { orderId: 'order.id', customerId: 'customer.id' }
 });
 
+// Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
+const exporter = connection.createSpanExporter({
+  refs: { orderId: 'order.id', customerId: 'customer.id' },
+  filters: ['invoke_llm', 'adk.before*', 'llm.*']
+});
+
 // 3. Attach the Exporter to OpenTelemetry
 const provider = new BasicTracerProvider({
   spanProcessors: [new SimpleSpanProcessor(exporter)]
@@ -94,6 +100,12 @@ func main() {
         Refs: map[string]string{"orderId": "order.id", "customerId": "customer.id"},
     })
 
+    // Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
+    exporter = threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+        Refs:    map[string]string{"orderId": "order.id", "customerId": "customer.id"},
+        Filters: []string{"invoke_llm", "adk.before*", "llm.*"},
+    })
+
     // 3. Attach the Exporter to OpenTelemetry
     provider := sdktrace.NewTracerProvider(
         sdktrace.WithBatcher(exporter),
@@ -132,6 +144,14 @@ async def main():
         options={"refs": {"orderId": "order.id", "customerId": "customer.id"}}
     )
 
+    # Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
+    exporter = conn.create_span_exporter(
+        options={
+            "refs": {"orderId": "order.id", "customerId": "customer.id"},
+            "filters": ["invoke_llm", "adk.before*", "llm.*"],
+        }
+    )
+
     # 3. Attach the Exporter to OpenTelemetry
     provider = TracerProvider()
     provider.add_span_processor(BatchSpanProcessor(exporter))
@@ -147,7 +167,21 @@ async def main():
 By default, the Exporter will automatically push Spans to Threadify whenever they end. It manages the underlying Threadify Thread lifecycles for you transparently.
 </Note>
 
-## 2. Using OpenTelemetry Natively
+## 2. Filtering Spans
+
+Some applications generate a high volume of internal or utility spans that you may not want to send to Threadify. Use the `filters` (Node.js/Go) or `"filters"` (Python) option to drop spans by name before they are exported.
+
+| Filter Pattern | Behavior | Example Match |
+| :--- | :--- | :--- |
+| `"invoke_llm"` | Exact match | `invoke_llm` |
+| `"adk.before*"` | Prefix wildcard (`*`) | `adk.before_tool_call`, `adk.before` |
+| `"llm.*"` | Prefix wildcard (`*`) | `llm.chat_completion`, `llm.` |
+
+<Note>
+Filters are applied on the span name only. Trailing `*` acts as a prefix wildcard. Empty filters are skipped.
+</Note>
+
+## 3. Using OpenTelemetry Natively
 
 Once configured, you simply use the standard OpenTelemetry API. You do not need to import or call Threadify directly in your business logic!
 
@@ -255,7 +289,7 @@ with tracer.start_as_current_span("process_payment") as span:
 </Tab>
 </Tabs>
 
-## Advanced Attributes (Optional)
+## 4. Advanced Attributes (Optional)
 
 If you want finer control over how a specific Span maps to Threadify, you can set the following special `threadify.*` attributes on your Span. If omitted, the Exporter will use sensible defaults.
 
