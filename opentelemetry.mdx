@@ -199,6 +199,9 @@ const span = tracer.startSpan('process_payment');
 // This tells Threadify to validate this thread against the 'payment_workflow' contract
 span.setAttribute('threadify.contract', 'payment_workflow');
 
+// Tag the thread for filtering and categorization
+span.setAttribute('threadify.tags', ['production', 'v2.1']);
+
 // Set attributes
 span.setAttribute('order.id', 'ORD-98765'); // Extracted as a Ref (based on setup)
 span.setAttribute('payment.amount', 42.50); // Extracted as standard Context
@@ -238,6 +241,9 @@ ctx, span := tracer.Start(context.Background(), "process_payment")
 // This tells Threadify to validate this thread against the 'payment_workflow' contract
 span.SetAttributes(attribute.String("threadify.contract", "payment_workflow"))
 
+// Tag the thread for filtering and categorization
+span.SetAttributes(attribute.StringSlice("threadify.tags", []string{"production", "v2.1"}))
+
 // Set attributes
 span.SetAttributes(attribute.String("order.id", "ORD-98765"))       // Extracted as a Ref (based on setup)
 span.SetAttributes(attribute.Float64("payment.amount", 42.50))     // Extracted as standard Context
@@ -270,6 +276,9 @@ with tracer.start_as_current_span("process_payment") as span:
     # This tells Threadify to validate this thread against the 'payment_workflow' contract
     span.set_attribute("threadify.contract", "payment_workflow")
 
+    # Tag the thread for filtering and categorization
+    span.set_attribute("threadify.tags", ["production", "v2.1"])
+
     # Set attributes
     span.set_attribute("order.id", "ORD-98765")       # Extracted as a Ref (based on setup)
     span.set_attribute("payment.amount", 42.50)     # Extracted as standard Context
@@ -300,5 +309,6 @@ If you want finer control over how a specific Span maps to Threadify, you can se
 | `threadify.thread_id` | Force the Span to attach to a specific existing Thread ID. | Auto-generates a new Thread per Trace |
 | `threadify.label` | The human-readable label for the Thread. | Uses `span.name` |
 | `threadify.service` | Override the service name that executed this step. | Uses the connection's default service |
+| `threadify.tags` | Immutable labels attached to the thread at creation time (e.g., `production`, `v2.1`). | `null` |
 
 Any attributes starting with `threadify.ref.*` or `threadify.context.*` will be explicitly mapped to references or context respectively, bypassing the default configuration rules.

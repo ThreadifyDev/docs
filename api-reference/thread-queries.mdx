@@ -77,6 +77,24 @@ query {
     }
   }
 }
+
+# Filter threads by tags
+query {
+  threads(
+    tags: ["production", "v2.1"]
+    status: "completed"
+    limit: 10
+  ) {
+    totalCount
+    threads {
+      id
+      label
+      tags
+      status
+      startedAt
+    }
+  }
+}
 ```
 
 </CodeGroup>
@@ -91,6 +109,7 @@ query {
 | `contractName` | String | Filter by contract name |
 | `contractVersion` | Int | Filter by contract version |
 | `status` | String | Filter by thread status |
+| `tags` | [String!] | Filter by tags (all must match) |
 | `startedAfter` | String | ISO timestamp - threads started after |
 | `startedBefore` | String | ISO timestamp - threads started before |
 | `completedAfter` | String | ISO timestamp - threads completed after |
@@ -133,6 +152,7 @@ query {
 | `startedAt` | String | Start timestamp |
 | `completedAt` | String | Completion timestamp |
 | `error` | String | Error message (if failed) |
+| `tags` | [String!] | Immutable tags set at thread creation |
 
 ## Available Queries
 

@@ -12,6 +12,7 @@ A **thread** is a live execution graph that generates auditable logs alongside i
 - **External references** (order IDs, customer IDs, etc.)
 - **Complete execution history** with all steps and context
 - **Cryptographic hash chain** for integrity verification
+- **Tags** - Immutable labels for filtering and categorization (e.g., `production`, `v2.1`)
 
 ### Contract Governance
 
@@ -36,6 +37,53 @@ Threads contain:
 - **Actors** - Services, users, or systems that perform actions
 - **Timestamps** - When each action occurred
 - **References** - Links to external system identifiers
+- **Tags** - Immutable labels set at creation for filtering and grouping
+
+### Tags
+
+Tags are immutable string labels attached to a thread when it is created. They are useful for categorization, filtering, and organizing threads across your organization. Because tags are set at creation time and cannot be changed, they provide a reliable way to group threads by environment, version, region, or any other static dimension.
+
+<Tabs>
+<Tab title="Node.js">
+
+```javascript
+// Pass tags when starting a thread
+const thread = await threadify.start('Order-789', 'order_fulfillment', {
+  tags: ['production', 'v2.1']
+});
+```
+
+</Tab>
+<Tab title="Go">
+
+```go
+// Pass tags when starting a thread
+thread, err := conn.Start(ctx, "Order-789", "order_fulfillment",
+    threadify.WithTags("production", "v2.1"),
+)
+if err != nil {
+    log.Fatal(err)
+}
+```
+
+</Tab>
+<Tab title="Python">
+
+```python
+# Pass tags when starting a thread
+thread = await connection.start(
+    "Order-789",
+    contract_name="order_fulfillment",
+    tags=["production", "v2.1"]
+)
+```
+
+</Tab>
+</Tabs>
+
+<Note>
+Tags can also be set via the OpenTelemetry Exporter using the `threadify.tags` span attribute. See the [OpenTelemetry Integration](/opentelemetry) page for details.
+</Note>
 
 ### Thread-to-Thread Relationships
 
