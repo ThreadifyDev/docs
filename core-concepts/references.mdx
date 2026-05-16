@@ -26,25 +26,17 @@ description: Linking threads to external system identifiers
 <Tabs>
 <Tab title="Node.js">
 ```javascript
-// Add references at thread creation
-const thread = await threadify.start('Order-Processing-ORD-12345', 'order_fulfillment', {
-  refs: {
-    orderId: 'ORDER-12345',
-    customerId: 'CUST-789',
-    stripePaymentId: 'pi_abc123'
-  }
+// Add references to an existing thread
+await thread.addRefs({
+  orderId: 'ORDER-12345',
+  customerId: 'CUST-789',
+  stripePaymentId: 'pi_abc123'
 });
 ```
 </Tab>
 <Tab title="Go">
 ```go
-// Start thread with a label and contract
-thread, err := conn.Start(ctx, "Order-Processing-ORD-12345", "order_fulfillment")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Add references after creation
+// Add references to an existing thread
 err = thread.AddRefs(ctx, map[string]string{
     "orderId":         "ORDER-12345",
     "customerId":      "CUST-789",
@@ -57,18 +49,7 @@ if err != nil {
 </Tab>
 <Tab title="Python">
 ```python
-# Start thread with a label and contract
-thread = await connection.start(
-    "Order-Processing-ORD-12345",
-    contract_name="order_fulfillment",
-    refs={
-        "orderId": "ORDER-12345",
-        "customerId": "CUST-789",
-        "stripePaymentId": "pi_abc123"
-    }
-)
-
-# Or add references after creation
+# Add references to an existing thread
 await thread.add_refs({
     "orderId": "ORDER-12345",
     "customerId": "CUST-789",

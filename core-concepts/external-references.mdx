@@ -28,28 +28,20 @@ Link workflows to external systems (Stripe, Shopify, etc.):
 <CodeGroup>
 
 ```javascript JavaScript
-const payment = await processStripePayment();
-
-// Add references at thread level
+// Add references to an existing thread
 await thread.addRefs({
   stripe_payment_id: payment.id,
   stripe_customer_id: payment.customer,
   order_id: 'ORD-12345'
 });
 
-// Then record the step with context
 await thread.step('process_payment')
   .addContext({ amount: 299.99, currency: 'USD' })
   .success();
 ```
 
 ```go Go
-payment, err := processStripePayment()
-if err != nil {
-    log.Fatal(err)
-}
-
-// Add references at thread level
+// Add references to an existing thread
 err = thread.AddRefs(ctx, map[string]string{
     "stripe_payment_id":   payment.ID,
     "stripe_customer_id": payment.Customer,
@@ -59,7 +51,6 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Then record the step with context
 _, err = thread.Step("process_payment").
     AddContext(map[string]any{"amount": 299.99, "currency": "USD"}).
     Success(ctx)
@@ -69,16 +60,13 @@ if err != nil {
 ```
 
 ```python Python
-payment = await process_stripe_payment()
-
-# Add references at thread level
+# Add references to an existing thread
 await thread.add_refs({
     "stripe_payment_id": payment.id,
     "stripe_customer_id": payment.customer,
     "order_id": "ORD-12345"
 })
 
-# Then record the step with context
 await (
     thread.step("process_payment")
     .add_context({"amount": 299.99, "currency": "USD"})

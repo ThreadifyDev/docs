@@ -47,8 +47,8 @@ Tags are immutable string labels attached to a thread when it is created. They a
 <Tab title="Node.js">
 
 ```javascript
-// Pass tags when starting a thread
-const thread = await threadify.start('Order-789', 'order_fulfillment', {
+// Tags are immutable — set them at creation only
+const thread = await threadify.start('...', '...', {
   tags: ['production', 'v2.1']
 });
 ```
@@ -57,25 +57,18 @@ const thread = await threadify.start('Order-789', 'order_fulfillment', {
 <Tab title="Go">
 
 ```go
-// Pass tags when starting a thread
-thread, err := conn.Start(ctx, "Order-789", "order_fulfillment",
+// Tags are immutable — set them at creation only
+thread, err := conn.Start(ctx, "...", "...",
     threadify.WithTags("production", "v2.1"),
 )
-if err != nil {
-    log.Fatal(err)
-}
 ```
 
 </Tab>
 <Tab title="Python">
 
 ```python
-# Pass tags when starting a thread
-thread = await connection.start(
-    "Order-789",
-    contract_name="order_fulfillment",
-    tags=["production", "v2.1"]
-)
+# Tags are immutable — set them at creation only
+thread = await connection.start("...", tags=["production", "v2.1"])
 ```
 
 </Tab>
