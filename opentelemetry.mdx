@@ -3,13 +3,10 @@ title: "OpenTelemetry Integration"
 description: "Automatically generate service-delivery graphs from your existing OpenTelemetry traces."
 ---
 
-Threadify is a service-delivery intelligence system. The Threadify SDK supports converting standard OpenTelemetry (OTel) traces into Threadify's service-delivery concepts, thereby providing deep, actionable intelligence into exactly how you are delivering to your customers.
-
-If your application is already instrumented with OpenTelemetry (OTel), you do **not** need to manually add `thread.step()` calls throughout your codebase. Instead, you can use the Threadify OpenTelemetry Exporter to seamlessly translate your existing traces into Threadify execution graphs.
+The Threadify exporter converts existing OpenTelemetry traces into Threadify
+execution graphs, without adding `thread.step()` calls to application code.
 
 ## The Mapping Model
-
-The Threadify Exporter automatically translates the highly technical OTel hierarchy into business-friendly language:
 
 | OpenTelemetry Concept | Threadify Concept | Description |
 | :--- | :--- | :--- |
@@ -20,21 +17,17 @@ The Threadify Exporter automatically translates the highly technical OTel hierar
 
 ## Status Mapping
 
-The Exporter automatically translates the OpenTelemetry `SpanStatus` into Threadify step outcomes. This ensures that technical failures (and even ambiguous states) are correctly captured as service-delivery intelligence.
-
 | Span Status | Threadify Outcome | Rationale |
 | :--- | :--- | :--- |
 | `SpanStatus.OK` | **success** | Explicitly marked as successful by the developer. |
 | `SpanStatus.ERROR` | **failed** | Explicitly marked as a failure or exception. |
 | `SpanStatus.UNSET` | **success** | The default status. Threadify treats "no error" as a successful delivery. |
 
-<Note>
-By following the standard OpenTelemetry convention where `UNSET` implies success, Threadify ensures zero-friction integration for existing instrumented applications.
-</Note>
+<Note>`UNSET` is treated as success because OpenTelemetry uses it when no error was recorded.</Note>
 
 ## 1. Setup the Exporter
 
-Integrating the exporter into your application takes just a few lines of code. You initialize the Exporter and register it with your global OpenTelemetry `TracerProvider`.
+Create the exporter and register it with your OpenTelemetry `TracerProvider`.
 
 <Tabs>
 <Tab title="Node.js">
@@ -163,13 +156,11 @@ async def main():
 </Tab>
 </Tabs>
 
-<Note>
-By default, the Exporter will automatically push Spans to Threadify whenever they end. It manages the underlying Threadify Thread lifecycles for you transparently.
-</Note>
+<Note>Ended spans are exported automatically; the exporter manages thread lifecycles.</Note>
 
 ## 2. Filtering Spans
 
-Some applications generate a high volume of internal or utility spans that you may not want to send to Threadify. Use the `filters` (Node.js/Go) or `"filters"` (Python) option to drop spans by name before they are exported.
+Use `filters` to drop internal or utility spans by name before export.
 
 | Filter Pattern | Behavior | Example Match |
 | :--- | :--- | :--- |
@@ -183,7 +174,7 @@ Filters are applied on the span name only. Trailing `*` acts as a prefix wildcar
 
 ## 3. Using OpenTelemetry Natively
 
-Once configured, you simply use the standard OpenTelemetry API. You do not need to import or call Threadify directly in your business logic!
+Once configured, instrument business logic with the standard OpenTelemetry API.
 
 <Tabs>
 <Tab title="Node.js">
@@ -300,7 +291,7 @@ with tracer.start_as_current_span("process_payment") as span:
 
 ## 4. Advanced Attributes (Optional)
 
-If you want finer control over how a specific Span maps to Threadify, you can set the following special `threadify.*` attributes on your Span. If omitted, the Exporter will use sensible defaults.
+Use `threadify.*` span attributes to override the default mapping.
 
 | Attribute | Description | Default Fallback |
 | :--- | :--- | :--- |

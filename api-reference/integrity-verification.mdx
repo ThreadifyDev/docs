@@ -66,21 +66,7 @@ query {
 | `prevHash` | String | Previous step hash |
 | `error` | String | Error message (if invalid) |
 
-## How Hash Chains Work
-
-1. **First Step**: Hash = HMAC-SHA256(prevHash:threadID:stepID:stepName:idempotencyKey:timestamp)
-2. **Subsequent Steps**: Each step's hash includes the previous step's hash
-3. **Verification**: Recalculate hashes and compare with stored values
-4. **Tamper Detection**: Any modification breaks the chain
-
-## Use Cases
-
-| Use Case | Description |
-|----------|-------------|
-| **Audit Trail** | Verify execution history hasn't been tampered with |
-| **Detect Tampering** | Identify where integrity was compromised |
-| **Step Verification** | Verify individual step integrity |
-| **Compliance** | Prove execution order for regulatory requirements |
+For the integrity model and common uses, see [Hash Chain](/things-to-know/hash-chain).
 
 ## Next Steps
 

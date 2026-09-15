@@ -3,7 +3,7 @@ title: 'Unsubscribing'
 description: 'Stop receiving notifications for specific events'
 ---
 
-**Unsubscribe** removes event handlers and stops receiving notifications for specific steps or events.
+Unsubscribe when a handler is no longer needed or during application shutdown.
 
 <CodeGroup>
 
@@ -38,14 +38,6 @@ connection.unsubscribe("thread.completed")
 ```
 
 </CodeGroup>
-
-### When to Unsubscribe
-
-| Scenario | Action |
-|----------|--------|
-| **Cleanup on shutdown** | Unsubscribe before closing connection |
-| **Dynamic subscriptions** | Remove handlers no longer needed |
-| **Memory management** | Prevent handler leaks in long-running processes |
 
 ### Behavior
 

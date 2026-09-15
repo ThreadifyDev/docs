@@ -5,9 +5,8 @@ description: 'Connect AI assistants directly to your Threadify execution graphs.
 
 ## Overview
 
-The Model Context Protocol (MCP) server enables any compatible AI assistant to interact directly with your execution graphs. This extends far beyond IDEs—whether you're using desktop assistants (like Claude) for engineering, deploying internal AI agents for customer support (front-office), or building custom LLM tools for operations and compliance (back-office).
-
-Instead of simply relying on static code or disjointed system prompts, you are granting your LLMs complete, real-time execution visibility. Your AI agents can natively query threads, validate sequences, and pinpoint exactly where and why any business process failed or stalled across your entire stack.
+The MCP server lets compatible AI assistants query threads, contracts and
+integrity results from Threadify.
 
 <Info>
 **MCP Server URL:** [https://mcp.threadify.dev](https://mcp.threadify.dev)
@@ -15,7 +14,7 @@ Instead of simply relying on static code or disjointed system prompts, you are g
 
 ## Connection Setup
 
-To connect to Threadify's MCP server, add it to your MCP client configuration (e.g., in Claude Desktop or your IDE's MCP settings):
+Add the server to your MCP client configuration:
 
 ```json
 {
@@ -34,8 +33,6 @@ To connect to Threadify's MCP server, add it to your MCP client configuration (e
 
 ## Available Tools
 
-Once connected, your AI assistant will have access to the following tools for querying your execution graphs. The agent will automatically know when and how to invoke these based on your natural language questions.
-
 | Tool | Parameters | Description |
 |---|---|---|
 | `get_thread` | `id` (string) | Retrieve a complete thread by ID, including all its steps and status. |
@@ -46,8 +43,6 @@ Once connected, your AI assistant will have access to the following tools for qu
 | `graphql_query` | `query` (string)<br/>`variables` (object, optional) | Execute custom GraphQL queries for granular data extraction. |
 
 ## Resources and Prompts
-
-The MCP server also exposes helpful resources and prompts designed to give your AI assistants a head start:
 
 **Resources:**
 - `graphql://schema`: Exposes the entire Threadify GraphQL schema, allowing the agent to discover all available query fields when using the `graphql_query` tool.

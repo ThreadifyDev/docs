@@ -3,9 +3,8 @@ title: Sub-steps
 description: These are used for tracking smaller unit of work in a business process eg conditional logics, sub-functional logic, etc.
 ---
 
-Sub-steps can only be recorded under a step, meaning you need to have created a step object to add a sub-step to it.
-
-**Note:** You cannot create a sub-step once the step has been marked as successful or failed.
+Sub-steps record smaller operations within a step. Add them before marking the
+parent step successful or failed.
 
 #### When to Use
 
@@ -82,42 +81,10 @@ except Exception as error:
 </Tabs>
 #### Properties
 
-<Tabs>
-<Tab title="JavaScript">
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `name` | Yes | — | Sub-step identifier |
+| `context` | No | Empty | Additional data |
+| `status` | No | `success` | `success` or `failed` |
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `name` | string | Yes | - | Sub-step identifier |
-| `context` | object | No | `{}` | Additional data for the sub-step |
-| `status` | string | No | `'success'` | Either `'success'` or `'failed'` |
-</Tab>
-<Tab title="Go">
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `name` | string | Yes | - | Sub-step identifier |
-| `context` | map[string]any | No | `nil` | Additional data for the sub-step |
-| `status` | string | No | `"success"` | Either `"success"` or `"failed"` |
-
-
-</Tab>
-<Tab title="Python">
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `name` | string | Yes | - | Sub-step identifier |
-| `context` | dict | No | `{}` | Additional data for the sub-step |
-| `status` | string | No | `'success'` | Either `'success'` or `'failed'` |
-
-</Tab>
-</Tabs>
-
-
-#### Key Differences from Steps
-
-**Scope** - Steps operate at the thread level, while sub-steps are contained within a step.
-
-**Validation** - Steps are subject to contract rules and validation, whereas sub-steps have no validation applied.
-
-**Notifications** - Steps trigger events and notifications, but sub-steps do not emit any events.
-
+Unlike steps, sub-steps are not contract-validated and do not emit notifications.

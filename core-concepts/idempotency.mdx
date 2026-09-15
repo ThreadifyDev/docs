@@ -3,7 +3,7 @@ title: Idempotency
 description: Ensuring consistent step recordings in Threadify
 ---
 
-**Idempotency** ensures that recording the same step multiple times has the same effect as recording it once. This prevents duplicate operations and ensures consistent execution when retries or network issues occur.
+Idempotency prevents retries from recording the same step more than once.
 
 ### Idempotency Approaches
 
@@ -71,21 +71,10 @@ await (
 
 </CodeGroup>
 
-### Use Cases
-
-| Scenario | Behavior | Example |
-|----------|----------|----------|
-| **Network retries** | Second call with same key is ignored | Payment processing retry |
-| **Service restarts** | Same key returns existing result | Service crashes mid-operation |
-| **Race conditions** | Only first request succeeds | Multiple pods processing same order |
-| **Duplicate prevention** | Prevents duplicate charges/operations | User clicks "Pay" twice |
-
 ### Best Practices
 
-- Use business identifiers (order ID, payment ID) when available
-- Follow consistent naming patterns for key generation
-- Ensure keys are unique within their scope
-- Never reuse idempotency keys for different operations
+- Use a stable business identifier, such as an order or payment ID, for retries.
+- Never reuse a key for a different operation.
 
 ### Next Steps
 
@@ -97,4 +86,3 @@ await (
     Handle retries and failures properly
   </Card>
 </CardGroup>
-

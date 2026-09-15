@@ -14,21 +14,11 @@ curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
 sh install.sh
 ```
 
-It selects Apple Silicon macOS, x86-64 Linux or x86-64 Windows (Git Bash),
-verifies the archive checksum, and installs into `$HOME/.local/bin`. Configuration
-files go into `${XDG_CONFIG_HOME:-$HOME/.config}/threadify`; existing files are
-preserved. Use `--version vX.Y.Z` for a published version, or `--bin-dir` and
-`--config-dir` to choose locations. It requires `curl`, `tar` (Windows: `unzip`),
-and `sha256sum` or `shasum`.
-
-Before starting, configure your Threadify Registry license, external PostgreSQL
-and Valkey, and hash-chain secret. The installer prints the start command.
-The dashboard and Web API are deployed separately. See the
+Configure your Registry license, PostgreSQL, Valkey and hash-chain secret, then
+run the start command printed by the installer. The dashboard and Web API are
+deployed separately. See the
 [self-hosting guide](https://github.com/creativeJoe007/ThreadifyEngine/blob/main/threadify-go/SELF_HOSTING.md)
 for the full setup and [authentication](/authentication) for browser sign-in.
-
-Manage your Engine from the terminal with `threadify-cli login`,
-`threadify-cli contracts create`, and the other [CLI commands](/cli).
 
 ## 1. Install the SDK
 
@@ -179,152 +169,10 @@ await (
 </Tab>
 </Tabs>
 
-## 5. Handle Failures
-
-<Tabs>
-<Tab title="JavaScript">
-```javascript
-// Create step first to track execution time
-const paymentStep = thread.step('payment_processed');
-try {
-  const payment = await processPayment(orderId);
-  await paymentStep.addContext(payment).success();
-} catch (error) {
-  await paymentStep.failed({ 
-    message: 'Payment gateway timeout',
-    errorCode: 'TIMEOUT'
-  });
-}
-```
-</Tab>
-<Tab title="Go">
-```go
-// Create step first to track execution time
-paymentStep := thread.Step("payment_processed")
-payment, err := processPayment(orderId)
-if err != nil {
-    _, stepErr := paymentStep.Failed(ctx, map[string]any{
-        "message":   "Payment gateway timeout",
-        "errorCode": "TIMEOUT",
-    })
-    if stepErr != nil {
-        log.Fatal(stepErr)
-    }
-    return
-}
-_, err = paymentStep.AddContext(payment).Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-```
-</Tab>
-<Tab title="Python">
-```python
-# Create step first to track execution time
-payment_step = thread.step("payment_processed")
-try:
-    payment = await process_payment(order_id)
-    await payment_step.add_context(payment).success()
-except Exception as error:
-    await payment_step.failed({
-        "message": "Payment gateway timeout",
-        "errorCode": "TIMEOUT"
-    })
-```
-</Tab>
-</Tabs>
-
-## 6. Set Up Real-time Event Listeners (Optional)
-
-Subscribe to WebSocket events to react to execution graph changes in real-time.
-
-<Tabs>
-<Tab title="JavaScript">
-```javascript
-// Listen for execution events
-connection.on('step.success', 'payment_processed', (event) => {
-  console.log('Payment processed - update UI, send confirmation email');
-  event.ack();
-});
-
-// Listen for validation violations
-connection.on('rule.violated', 'inventory_check', (event) => {
-  console.error('Inventory violation detected - escalate to ops');
-  event.ack();
-});
-
-// Contract-specific events
-connection.on('rule.violated', 'product_delivery@order_placed', (event) => {
-  console.log('Product delivery rule violated - notify logistics');
-  event.ack();
-});
-```
-</Tab>
-<Tab title="Go">
-```go
-// Listen for execution events
-err := conn.Subscribe(ctx, "step.success", "payment_processed", func(n *threadify.Notification) {
-    fmt.Println("Payment processed - update UI, send confirmation email")
-    n.Ack()
-})
-if err != nil {
-    log.Fatal(err)
-}
-
-// Listen for validation violations
-err = conn.Subscribe(ctx, "rule.violated", "inventory_check", func(n *threadify.Notification) {
-    fmt.Println("Inventory violation detected - escalate to ops")
-    n.Ack()
-})
-if err != nil {
-    log.Fatal(err)
-}
-
-// Contract-specific events
-err = conn.Subscribe(ctx, "rule.violated", "product_delivery@order_placed", func(n *threadify.Notification) {
-    fmt.Println("Product delivery rule violated - notify logistics")
-    n.Ack()
-})
-if err != nil {
-    log.Fatal(err)
-}
-```
-</Tab>
-<Tab title="Python">
-```python
-# Listen for execution events
-def on_payment_success(event):
-    print("Payment processed - update UI, send confirmation email")
-    event.ack()
-
-connection.subscribe("step.success", "payment_processed", on_payment_success)
-
-# Listen for validation violations
-def on_inventory_violation(event):
-    print("Inventory violation detected - escalate to ops")
-    event.ack()
-
-connection.subscribe("rule.violated", "inventory_check", on_inventory_violation)
-
-# Contract-specific events
-def on_contract_violation(event):
-    print("Product delivery rule violated - notify logistics")
-    event.ack()
-
-connection.subscribe("rule.violated", "product_delivery@order_placed", on_contract_violation)
-```
-</Tab>
-</Tabs>
-
 ## What's Next?
 
-- [Installation Guide](/installation) - Detailed setup for production
-- [API Reference](/api/overview) - Complete API documentation  
-- [SDK Guide](/sdk/overview) - Advanced SDK features
-- [Creating Contracts](/guides/creating-contracts) - Define business rules
-
-## Need Help?
-
-- Check our [troubleshooting guide](/guides/troubleshooting)
-- Visit our [GitHub discussions](https://github.com/yourusername/threadify/discussions)
-- Contact support at support@threadify.dev
+- [Capture failures](/core-concepts/handling-failures)
+- [Create a contract](/core-concepts/creating-contracts)
+- [Subscribe to events](/core-concepts/notifications/subscribing)
+- [Query the GraphQL API](/api-reference/overview)
+- [Manage Threadify from the CLI](/cli)

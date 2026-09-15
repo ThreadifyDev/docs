@@ -3,11 +3,8 @@ title: 'Closing Threads'
 description: 'Complete or cancel threads manually for non-contract workflows'
 ---
 
-**Closing a thread** allows you to explicitly mark threads as completed or cancelled. Contract-based threads end automatically at terminal steps, while non-contract threads require manual ending.
-
-#### Contract vs Non-Contract
-
-**Contract-based threads** end automatically when a terminal step is reached. **Non-contract threads** require manual ending via `complete()` or `cancel()`.
+Contract threads close automatically at a terminal step. Close non-contract
+threads explicitly as completed or cancelled.
 
 <Warning>
 Manual completion is rejected for contract-based threads unless a terminal step has been reached.
@@ -59,34 +56,13 @@ await thread.close("User cancelled order")
 </CodeGroup>
 
 
-#### Properties
+#### Methods
 
-<Tabs>
-<Tab title="JavaScript">
-
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| `complete(reason?)` | Mark thread as successfully completed | `reason` (string/object, optional) |
-| `cancel(reason?)` | Mark thread as cancelled | `reason` (string/object, optional) |
-
-</Tab>
-<Tab title="Go">
-
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| `Complete(ctx, reason?)` | Mark thread as successfully completed | `ctx` (context.Context), `reason` (string, optional) |
-| `Cancel(ctx, reason?)` | Mark thread as cancelled | `ctx` (context.Context), `reason` (string, optional) |
-
-</Tab>
-<Tab title="Python">
-
-| Method | Description | Parameters |
-|--------|-------------|------------|
-| `complete(reason?)` | Mark thread as successfully completed | `reason` (string/dict, optional) |
-| `close(reason?)` | Mark thread as cancelled | `reason` (string/dict, optional) |
-
-</Tab>
-</Tabs>
+| SDK | Complete | Cancel |
+|-----|----------|--------|
+| JavaScript | `complete(reason?)` | `cancel(reason?)` |
+| Go | `Complete(ctx, reason?)` | `Cancel(ctx, reason?)` |
+| Python | `complete(reason?)` | `close(reason?)` |
 
 ### Notifications
 

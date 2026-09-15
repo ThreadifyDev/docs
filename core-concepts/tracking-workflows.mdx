@@ -5,7 +5,8 @@ description: 'Capture business workflows as threads (execution graphs)'
 
 ### Starting a Thread
 
-A thread represents a workflow execution instance (e.g., an order, a support ticket, a user onboarding). A thread is an execution graph containing all actions performed by services involved in delivery an outcome to a customer's request
+A thread is one workflow execution, such as an order, support ticket or customer
+onboarding. Its steps form an execution graph across every participating service.
 
 <CodeGroup>
 
@@ -85,7 +86,8 @@ Non-contract threads remain "active" indefinitely unless explicitly ended. [View
 
 ### Idempotency
 
-Threadify automatically handles idempotency - recording the same step multiple times only stores the first execution.
+Threadify stores only the first recording for an idempotency key. See
+[Idempotency](/core-concepts/idempotency) when retries need a custom key.
 
 ### Next Steps
 

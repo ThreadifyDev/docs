@@ -3,15 +3,8 @@ title: Threadify CLI
 description: Sign in and manage contracts, entity profiles and threads from your terminal.
 ---
 
-A standalone client for managing a running Threadify Engine. This repository has
-its own Go module, tests, CI and release archives. It does not link or start the
-Engine, PostgreSQL, Valkey or NATS.
-
-Build with `make build`, or download a release archive for Apple Silicon macOS,
-x86-64 Linux or x86-64 Windows. Verify it against `checksums.txt`, extract it and
-put `threadify-cli` (`threadify-cli.exe` on Windows) on your PATH. Archives include
-this guide and example contract/profile-type YAML. To use the shorter command on
-a client machine, you can set `alias threadify=threadify-cli` in your shell.
+Use `threadify-cli` to manage a running Engine. It does not start the Engine or
+its dependencies.
 
 ## Connect and sign in
 
@@ -31,20 +24,13 @@ threadify-cli login --api-url https://threadify.example.com
 threadify-cli login --api-url https://threadify.example.com --no-browser
 ```
 
-With no configured URL, `login` prompts for it. Use `--no-input` or `CI=true`
-to require an explicit/configured URL. The browser opens the Engine's configured
-Threadify UI. Sign in through Fused Registry or with an existing API key, then
-click **Approve CLI login**. Approval is explicit even if already signed in.
-The CLI generates its credential locally; neither the browser nor the Engine
-receives that credential in plaintext. Enrollment expires after five minutes;
-the resulting credential expires after 30 days. User status and source-key
-revocation are checked on requests, and user role/status changes revoke existing
-CLI logins. Service-account approval retains the service identity and permissions.
+If no URL is configured, `login` prompts for one. The browser opens the Engine's
+UI; sign in, then select **Approve CLI login**. Use `--no-browser` on remote
+terminals and `--no-input` or `CI=true` in non-interactive environments.
 
-The Engine needs `registry.browser_origin` / `THREADIFY_BROWSER_ORIGIN` set to
-the deployed UI origin, and that UI must connect to this Engine. Both need the
-CLI-login update. The Engine doesn't bundle the UI. Email/SSO continues to use
-Registry's existing identity flow.
+The approval URL expires after five minutes and the CLI credential after 30 days.
+Role changes, suspension and source-key revocation invalidate existing logins.
+Self-hosted Engines must set `registry.browser_origin` to the deployed UI origin.
 
 ```sh
 threadify-cli logout                # Revoke the saved managed CLI login
@@ -52,10 +38,8 @@ threadify-cli config get api-url
 threadify-cli config show           # Key redacted
 ```
 
-Logout targets the saved login at its saved Engine, regardless of ambient
-URL/key overrides. It retains local state on a failed revocation so you can
-retry. Manually configured API keys are not revoked by logout. Ambient
-`THREADIFY_API_KEY` credentials remain available after logout.
+`logout` revokes the managed CLI credential. It does not revoke manually
+configured keys or unset `THREADIFY_API_KEY`.
 
 ## Automation and configuration
 
@@ -73,24 +57,18 @@ To save a key without putting it in command arguments, pipe it on stdin:
 printf '%s' "$THREADIFY_API_KEY" | threadify-cli config set --api-key-stdin
 ```
 
-`threadify-cli config set api-key KEY` is also supported, but shell history can
-record arguments. CLI config lives at `$XDG_CONFIG_HOME/threadify/cli.yaml`,
-defaulting to `$HOME/.config/threadify/cli.yaml`. Override it with
-`THREADIFY_CLI_CONFIG`. It is separate from the server's `config.yaml` and is
-written atomically with file mode `0600` on Unix. Changing its API URL clears
-the saved credential to avoid sending it to a different Engine.
+Avoid `threadify-cli config set api-key KEY`: command arguments may be recorded
+in shell history. CLI config defaults to `$HOME/.config/threadify/cli.yaml` and
+can be moved with `THREADIFY_CLI_CONFIG`. Changing the saved API URL clears the
+saved credential.
 
-URL precedence: `--api-url` (alias `--engine-url`), `THREADIFY_API_URL`,
-`THREADIFY_ENGINE_URL`, saved config. Credential precedence: `--key`, saved
-credential for that exact Engine URL, then `THREADIFY_API_KEY`. Global
-connection flags can precede the command or follow it. Proxy path prefixes
-are retained. HTTP redirects are rejected so credentials cannot be forwarded
-to a different endpoint.
+URL precedence is `--api-url`, `THREADIFY_API_URL`, `THREADIFY_ENGINE_URL`, then
+saved config. Credential precedence is `--key`, the saved credential for that
+Engine, then `THREADIFY_API_KEY`.
 
-Resource commands print JSON to stdout and errors to stderr, exit nonzero on
-failure, and accept `--timeout 30s`. Writes are not automatically retried.
-An acknowledgement timeout can mean the operation succeeded; query its state
-before retrying. Use `--file -` to read a document from stdin.
+Commands print JSON to stdout, errors to stderr and exit nonzero on failure.
+Writes are not retried automatically; check state before retrying a timed-out
+write. Use `--timeout 30s` to change the timeout and `--file -` to read stdin.
 
 ## Contracts
 
@@ -105,9 +83,8 @@ threadify-cli contracts get --id CONTRACT_ID --version 1
 threadify-cli contracts delete --id CONTRACT_ID --yes
 ```
 
-Files can contain YAML or Gherkin accepted by the Engine. Update creates a
-contract version according to Engine semantics. Deletion requires `--yes`.
-Contract validation and permissions are enforced by the Engine.
+Files can contain Engine-compatible YAML or Gherkin. Updates create a new
+version; deletion requires `--yes`.
 
 ## Entity profile types and profiles
 
@@ -129,15 +106,10 @@ threadify-cli profiles get --id PROFILE_ID
 threadify-cli profiles history --id PROFILE_ID
 ```
 
-A profile type maps one to five reference keys to an entity category. This first
-CLI version creates basic definitions; custom metric definitions, profile-type
-updates and archiving remain in the Web API/UI. Unsupported fields are rejected.
-
-Explicit profile creation uses an upsert: the same type/ref pair keeps its ID
-and updates the name. It requires `entity_profile_type.update`; creating types
-requires `entity_profile_type.create`. Engine quotas apply. Profiles also appear
-automatically when thread references match a configured type; persistence is
-asynchronous, so allow a short delay before querying newly derived profiles.
+A profile type maps one to five reference keys to an entity category. Custom
+metrics, type updates and archiving remain in the Web API/UI. Creating the same
+type/reference pair again updates its name without changing its ID. Profiles
+may also be created asynchronously when thread references match a configured type.
 
 ## Threads and references
 

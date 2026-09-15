@@ -3,17 +3,8 @@ title: 'Creating a Contract'
 description: 'Define business rules and validation logic for your workflows'
 ---
 
-**Contracts** define business rules and validation logic that enforce how steps should execute and relate to each other. They provide real-time validation and ensure business processes follow defined patterns.
-
-### Contract Properties
-
-- **Name** - Unique identifier for the contract
-- **Version** - Supports contract evolution
-- **Rules** - Validation logic for steps and transitions
-- **Entry Points** - Valid starting steps
-- **Terminal Steps** - Steps that complete the thread
-- **Timeouts** - Maximum duration for steps and threads
-
+Contracts define valid steps, transitions, required context and timeouts for a
+workflow. Threadify validates each contracted thread as it runs.
 
 ### Contract Structure
 

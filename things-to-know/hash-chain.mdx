@@ -3,7 +3,8 @@ title: Hash Chain
 description: Cryptographically verified ordering and integrity for threads
 ---
 
-The **Hash Chain** is a cryptographic verification system that ensures the integrity and ordering of steps in a thread. Each step contains a hash that links to the previous step, creating an immutable audit trail.
+Each step contains a hash of its contents and the previous step's hash. A changed
+or reordered step therefore breaks the thread's hash chain.
 
 ### Hash Properties
 
@@ -70,17 +71,7 @@ for step in steps:
 </Tab>
 </Tabs>
 
-### Benefits
-
-- **Integrity** - Detects any modification to step data
-- **Ordering** - Ensures steps execute in correct sequence
-- **Audit Trail** - Immutable record of execution
-- **Trust** - Cryptographic proof of execution
-
 ### Use Cases
 
-- **Compliance** - Regulated industries need audit trails
-- **Dispute Resolution** - Prove what actually happened
-- **Security** - Detect unauthorized modifications
-- **Debugging** - Identify where execution went wrong
-
+Verify the chain when auditing execution history, investigating tampering or
+providing evidence for compliance and dispute resolution.

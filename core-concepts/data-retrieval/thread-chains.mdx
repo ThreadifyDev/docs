@@ -3,11 +3,8 @@ title: 'Thread Chains'
 description: 'Query parent-child thread relationships'
 ---
 
-Thread chains retrieve hierarchical relationships between linked threads, enabling you to trace execution across distributed workflows.
-
-## Overview
-
-When threads are linked using `linkThread()`, you can query the entire chain starting from any thread in the hierarchy. The query traverses downward to descendants only.
+Thread chains trace linked workflows from any starting thread down through its
+descendants.
 
 ## Usage
 
@@ -65,13 +62,6 @@ Array of `ArchivedThread` objects ordered from starting thread to descendants.
 | `child` | Child thread for sub-processes |
 | `related` | Parallel or dependent workflow |
 | `followup` | Continuation of previous thread |
-
-## Use Cases
-
-- **Saga Pattern**: Track compensating transactions across services
-- **Multi-Stage Workflows**: Trace customer requests through multiple services
-- **Debugging**: Identify cascade failures in distributed systems
-- **Analytics**: Analyze complete execution paths
 
 ## Next Steps
 
