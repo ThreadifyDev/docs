@@ -13,8 +13,7 @@ const thread = await threadify.getThread('thread-uuid');
 
 // By external reference
 const threads = await threadify.getThreadsByRef({
-  refKey: 'stripe_payment_id',
-  refValue: 'pi_1234567890'
+  payment_id: 'pi_1234567890'
 });
 ```
 
@@ -27,7 +26,7 @@ if err != nil {
 
 // By external reference
 threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
-    RefKey:   "stripe_payment_id",
+    RefKey:   "payment_id",
     RefValue: "pi_1234567890",
 })
 if err != nil {
@@ -43,22 +42,56 @@ thread = await conn.get_thread("thread-uuid")
 
 # By external reference
 threads = await conn.get_threads_by_ref(
-    RefQuery(ref_key="stripe_payment_id", ref_value="pi_1234567890")
+    RefQuery(ref_key="payment_id", ref_value="pi_1234567890")
 )
 ```
 
 </CodeGroup>
 
-### Query Options
+### JavaScript Reference Queries
+
+Pass exactly one reference key/value pair. Both the key and value must be
+non-empty strings. Empty maps and maps with multiple refs are rejected.
+
+```javascript
+// All matches in the requested page
+const threads = await threadify.getThreadsByRef({ order_id: 'ORD-1001' });
+
+// Optional filters and pagination belong in a second argument
+const completed = await threadify.getThreadsByRef(
+  { order_id: 'ORD-1001' },
+  { status: 'completed', limit: 10, offset: 0 }
+);
+
+// First match, or null if no thread matches
+const first = await threadify.getThreadByRef({ order_id: 'ORD-1001' });
+```
+
+`getThreadsByRef()` returns an array, which is empty when nothing matches.
+`getThreadByRef()` returns the first match or `null`. A ref is not a unique
+thread identifier: several threads can have the same ref. Starting a new thread
+with an existing ref still creates a separate thread.
+
+These methods read persisted data, so newly recorded activity may take a few
+seconds to appear. Returned threads are read-only. To contribute to an active
+thread, use `threadify.join(thread.id)` with an authorized key.
+
+### JavaScript Query Options
+
+Pass these options as the second argument to `getThreadsByRef(refs, options)`.
+They are separate from the ref map, so a ref named `status` is still supported.
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `refKey` | string | Reference key |
-| `refValue` | string | Reference value |
 | `status` | string | `active`, `completed`, `cancelled` |
 | `startedAfter` | string | ISO timestamp filter |
 | `startedBefore` | string | ISO timestamp filter |
-| `limit` | number | Max results |
+| `limit` | number | Page size; default 50, engine maximum 100 |
+| `offset` | number | Pagination offset; default 0 |
+
+The Go and Python SDKs retain their `RefQuery` input, as shown above. Direct
+GraphQL queries retain `refKey` and `refValue`; see
+[Thread Queries](/api-reference/thread-queries).
 
 ### Thread Properties
 

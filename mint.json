@@ -25,7 +25,9 @@
       "pages": [
         "introduction",
         "quickstart",
-        "opentelemetry"
+        "opentelemetry",
+        "authentication",
+        "cli"
       ]
     },
     {

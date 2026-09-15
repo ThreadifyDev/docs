@@ -1,6 +1,6 @@
 ---
 title: 'External References'
-description: 'Link your workflows to external systems like Stripe, Shopify, and more'
+description: 'Link your workflows to external systems like payment providers, Shopify, and more'
 ---
 
 **References** link threads to external system identifiers like order IDs, customer IDs, or support tickets. They enable you to query threads using identifiers from your existing systems.
@@ -23,15 +23,15 @@ description: 'Link your workflows to external systems like Stripe, Shopify, and 
 
 ### Adding References
 
-Link workflows to external systems (Stripe, Shopify, etc.):
+Link workflows to external systems (payment providers, Shopify, etc.):
 
 <CodeGroup>
 
 ```javascript JavaScript
 // Add references to an existing thread
 await thread.addRefs({
-  stripe_payment_id: payment.id,
-  stripe_customer_id: payment.customer,
+  payment_id: payment.id,
+  customer_id: payment.customer,
   order_id: 'ORD-12345'
 });
 
@@ -43,8 +43,8 @@ await thread.step('process_payment')
 ```go Go
 // Add references to an existing thread
 err = thread.AddRefs(ctx, map[string]string{
-    "stripe_payment_id":   payment.ID,
-    "stripe_customer_id": payment.Customer,
+    "payment_id":   payment.ID,
+    "customer_id": payment.Customer,
     "order_id":           "ORD-12345",
 })
 if err != nil {
@@ -62,8 +62,8 @@ if err != nil {
 ```python Python
 # Add references to an existing thread
 await thread.add_refs({
-    "stripe_payment_id": payment.id,
-    "stripe_customer_id": payment.customer,
+    "payment_id": payment.id,
+    "customer_id": payment.customer,
     "order_id": "ORD-12345"
 })
 
@@ -78,18 +78,23 @@ await (
 
 ### Querying by Reference
 
+Refs can match multiple threads; they do not enforce uniqueness or merge threads.
+JavaScript lookups accept exactly one ref pair, with filters in an optional second
+argument. See [Getting Threads](/core-concepts/data-retrieval/getting-threads) for
+pagination, return values, and examples.
+
+
 <CodeGroup>
 
 ```javascript JavaScript
 const threads = await threadify.getThreadsByRef({
-  refKey: 'stripe_payment_id',
-  refValue: 'pi_1234567890'
+  payment_id: 'pi_1234567890'
 });
 ```
 
 ```go Go
 threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
-    RefKey:   "stripe_payment_id",
+    RefKey:   "payment_id",
     RefValue: "pi_1234567890",
 })
 if err != nil {
@@ -101,7 +106,7 @@ if err != nil {
 from threadify.models import RefQuery
 
 threads = await conn.get_threads_by_ref(
-    RefQuery(ref_key="stripe_payment_id", ref_value="pi_1234567890")
+    RefQuery(ref_key="payment_id", ref_value="pi_1234567890")
 )
 ```
 

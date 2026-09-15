@@ -10,7 +10,9 @@ description: 'Connect to Threadify Engine and start tracking workflows'
 ```javascript JavaScript
 import { Threadify } from '@threadify/sdk';
 
-const threadify = await Threadify.connect('your-api-key', 'my-service');
+const threadify = await Threadify.connect('your-api-key', 'my-service', {
+  engineUrl: 'https://threadify.example.com'
+});
 await threadify.close()
 ```
 
@@ -37,6 +39,15 @@ connection = await Threadify.connect(
 
 </CodeGroup>
 
+### One Engine URL for JavaScript
+
+Copy the address from **Settings → Engine** into `engineUrl`. The SDK handles
+WebSocket and GraphQL routing internally; no separate paths are needed. A
+reverse-proxy prefix such as `https://example.com/threadify` is preserved.
+`Threadify.create({ apiKey, serviceName, engineUrl })` also accepts this option.
+Do not combine `engineUrl` with explicit `url`, `wsUrl` or `graphqlUrl` options.
+OpenTelemetry and MCP clients have their own collapsible setup sections in Settings.
+
 ### Parameters
 
 | Parameter | Type | Required | Description |
@@ -50,6 +61,7 @@ connection = await Threadify.connect(
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `maxInFlight` | number | 10 | Max pending notifications (max: 100) |
+| `engineUrl` | string | Hosted Threadify Engine | JavaScript SDK base URL for both writes and queries |
 | `reconnect` | boolean | true | Auto-reconnect on disconnect |
 | `timeout` | number | 30000 | Connection timeout (ms) |
 

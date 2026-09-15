@@ -30,7 +30,7 @@ description: Linking threads to external system identifiers
 await thread.addRefs({
   orderId: 'ORDER-12345',
   customerId: 'CUST-789',
-  stripePaymentId: 'pi_abc123'
+  paymentId: 'pi_abc123'
 });
 ```
 </Tab>
@@ -40,7 +40,7 @@ await thread.addRefs({
 err = thread.AddRefs(ctx, map[string]string{
     "orderId":         "ORDER-12345",
     "customerId":      "CUST-789",
-    "stripePaymentId": "pi_abc123",
+    "paymentId": "pi_abc123",
 })
 if err != nil {
     log.Fatal(err)
@@ -53,7 +53,7 @@ if err != nil {
 await thread.add_refs({
     "orderId": "ORDER-12345",
     "customerId": "CUST-789",
-    "stripePaymentId": "pi_abc123"
+    "paymentId": "pi_abc123"
 })
 ```
 </Tab>
@@ -61,19 +61,23 @@ await thread.add_refs({
 
 ### Querying by References
 
+Refs can match multiple threads; they do not enforce uniqueness or merge threads.
+JavaScript lookups accept exactly one ref pair, with filters in an optional second
+argument. See [Getting Threads](/core-concepts/data-retrieval/getting-threads) for
+pagination, return values, and examples.
+
+
 <Tabs>
 <Tab title="Node.js">
 ```javascript
 // Query threads by reference
 const threads = await threadify.getThreadsByRef({
-  refKey: 'orderId',
-  refValue: 'ORDER-12345'
+  orderId: 'ORDER-12345'
 });
 
 // Find by customer ID
 const customerThreads = await threadify.getThreadsByRef({
-  refKey: 'customerId',
-  refValue: 'CUST-456'
+  customerId: 'CUST-456'
 });
 ```
 </Tab>

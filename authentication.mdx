@@ -1,0 +1,89 @@
+---
+title: 'Authentication'
+description: 'Sign in through Fused Registry or use an API key with your Threadify Engine.'
+---
+
+## Browser sign-in
+
+Open your Threadify UI at `/login`. Choose **Continue with email or SSO** to use
+Fused Registry identity, or **Sign in with API key** to exchange a key for a local
+browser session. The Registry license must include Threadify; the same account
+can license Fused, Threadify, or both.
+
+Email/SSO sign-in requires managed identity to be enabled on the Registry. The
+license owner can sign in to the licensed installation. Other people's first
+sign-in requires an Engine-owned invited user matching their verified email.
+Returning users must have an active local identity binding.
+
+An API key keeps its existing permissions. A service-account key does not become
+a human administrator. The configured Registry license key may be used by the
+operator to bootstrap the account owner.
+
+Browser sessions use HttpOnly cookies and expire after eight hours. The Engine
+checks current roles, source-key revocation and expiry on each request. Signing
+out revokes the local session and requests provider logout when available.
+Threadify no longer needs Supabase credentials or a separate password login.
+
+## Users and invitations
+
+The Engine owns users, roles and invitation state. In **Team**, an administrator
+creates a user with an email, name and `admin`, `member` or `viewer` role. The user
+immediately appears as **invited**. Share the displayed sign-in link; Threadify
+does not send an invitation email. Registry verifies the invited email and the
+Engine changes the user to **active** on first sign-in.
+
+Administrators can change roles, suspend users, reactivate suspended users and
+archive users or invitations. Suspended users cannot use browser sessions or
+personal API keys. Reactivation requires a new browser session. Archival is
+permanent and revokes personal keys. Service-account keys have their own lifecycle.
+At least one active human administrator must remain.
+
+Use `GET /v1/users` to list users, `POST /v1/users` with
+`{ "email": "person@example.com", "full_name": "Person", "role": "member" }`
+to invite, and `PATCH /v1/users/:id` to change a name, role or status.
+An administrator cannot manually activate an invitation; verified sign-in does
+that. Invitations remain pending until accepted or archived. Old `/api/team/*`
+routes are retired.
+
+## Self-host configuration
+
+Configure the Engine and external Web API with the same PostgreSQL database,
+Registry license and installation ID. Set the exact public UI origin on both:
+
+```yaml
+registry:
+  license_key: "$THREADIFY_LICENSE_KEY"
+  browser_origin: "https://threadify.example.com"
+```
+
+Serve the UI, Engine routes and external Web API behind the same HTTPS hostname.
+Route `/auth/*`, `/graphql` and `/v1/*` to the Engine and `/api/*` to the Web API.
+For local development, HTTP loopback URLs can use separate ports on the same
+hostname. Do not mix `localhost` and `127.0.0.1`.
+
+## Hosted Engine address
+
+Set the address where clients reach the Engine in `config.yaml`:
+
+```yaml
+server:
+  public_url: "https://threadify.example.com"
+```
+
+Administrators can also edit **Settings → Engine → Engine URL**. A UI
+setting overrides the config value and persists across restarts. Select **Use
+config default** to remove the override. Config changes require an Engine restart;
+UI changes apply immediately. Pass the address as `engineUrl` to the JavaScript
+SDK; it handles writing and querying threads. OpenTelemetry and MCP addresses
+appear in their setup sections. Proxy path prefixes are preserved.
+
+This is the Engine's advertised address. Configure DNS, TLS, the reverse proxy,
+the UI's `ENGINE_URL` and `registry.browser_origin` separately. Changing the public
+address does not redirect your browser session or credentials to another host.
+
+## SDK and OpenTelemetry access
+
+Browser cookies do not replace integration API keys. Create a key from **API Keys**
+and pass it through the SDK's existing connection configuration or your telemetry
+exporter's authorization header. Use a service account with the permissions that
+integration needs. Revoking a key also invalidates browser sessions created from it.

@@ -10,7 +10,7 @@ description: Ensuring consistent step recordings in Threadify
 | Approach | When to Use | Key Generation |
 |----------|-------------|----------------|
 | **Auto-generated** (default) | Context uniquely identifies operation | Hash of `stepName + context` |
-| **Manual** (`.idempotencyKey()`) | External system IDs, user-initiated retries, cross-service deduplication | Custom key (e.g., Stripe payment ID, request ID) |
+| **Manual** (`.idempotencyKey()`) | External system IDs, user-initiated retries, cross-service deduplication | Custom key (e.g., payment providers payment ID, request ID) |
 
 <CodeGroup>
 
@@ -21,7 +21,7 @@ await thread.step('validate_cart')
   .success();
 
 // Manual key with external ID
-const payment = await stripe.charges.create({ amount: 9999 });
+const payment = await payments.charges.create({ amount: 9999 });
 await thread.step('charge_payment')
   .idempotencyKey(payment.id)
   .addContext({ amount: '99.99' })
@@ -38,7 +38,7 @@ if err != nil {
 }
 
 // Manual key with external ID
-payment, err := stripe.Charges.Create(&stripe.ChargeParams{Amount: 9999})
+payment, err := payments.Charges.Create(&payments.ChargeParams{Amount: 9999})
 if err != nil {
     log.Fatal(err)
 }
@@ -60,7 +60,7 @@ await (
 )
 
 # Manual key with external ID
-payment = await stripe.charges.create(amount=9999)
+payment = await payments.charges.create(amount=9999)
 await (
     thread.step("charge_payment")
     .idempotency_key(payment.id)

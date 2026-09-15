@@ -3,7 +3,34 @@ title: Quick Start
 description: Get Threadify running in 5 minutes
 ---
 
-## 1.  and Install the SDK
+## Install your Engine
+
+For self-hosting, download the binary installer and run it:
+
+```bash
+curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
+  https://github.com/creativeJoe007/ThreadifyEngine/releases/latest/download/install.sh \
+  --output install.sh
+sh install.sh
+```
+
+It selects Apple Silicon macOS, x86-64 Linux or x86-64 Windows (Git Bash),
+verifies the archive checksum, and installs into `$HOME/.local/bin`. Configuration
+files go into `${XDG_CONFIG_HOME:-$HOME/.config}/threadify`; existing files are
+preserved. Use `--version vX.Y.Z` for a published version, or `--bin-dir` and
+`--config-dir` to choose locations. It requires `curl`, `tar` (Windows: `unzip`),
+and `sha256sum` or `shasum`.
+
+Before starting, configure your Threadify Registry license, external PostgreSQL
+and Valkey, and hash-chain secret. The installer prints the start command.
+The dashboard and Web API are deployed separately. See the
+[self-hosting guide](https://github.com/creativeJoe007/ThreadifyEngine/blob/main/threadify-go/SELF_HOSTING.md)
+for the full setup and [authentication](/authentication) for browser sign-in.
+
+Manage your Engine from the terminal with `threadify-cli login`,
+`threadify-cli contracts create`, and the other [CLI commands](/cli).
+
+## 1. Install the SDK
 
 <Tabs>
 <Tab title="JavaScript">
@@ -26,7 +53,7 @@ pip install threadify-sdk
 ## 2. Connect to Threadify
 
 <Note>
-  Need an API key? Create an [account](https://threadify.dev/signup) and [Generate one here](https://threadify.dev/u/api-keys) to get started.
+  Need an API key? [Sign in to your Engine](/authentication), then open **API Keys** to create one.
 </Note>
 
 <Tabs>
@@ -35,7 +62,9 @@ pip install threadify-sdk
 import { Threadify } from '@threadify/sdk';
 
 // Connect with your API key and service name
-const connection = await Threadify.connect('your-api-key', 'my-service');
+const connection = await Threadify.connect('your-api-key', 'my-service', {
+  engineUrl: 'https://threadify.example.com' // Your Settings → Engine address
+});
 ```
 </Tab>
 <Tab title="Go">
