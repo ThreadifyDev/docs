@@ -33,8 +33,39 @@ import threadify
 
 ## Requirements
 
-- **Python version**: 3.9 or higher
+- **Python version**: 3.10 or higher
 - **Dependencies**: Automatically managed by pip
+
+## Self-hosted Engine and contract waits
+
+These examples target Python SDK 0.3 and later.
+
+```python
+from threadify import Threadify, WaitOptions
+
+connection = await Threadify.connect(
+    api_key,
+    engine_url="https://threadify.example.com",
+    service_name="payments",
+)
+threads = await connection.get_threads_by_ref({"order_id": "ORD-1001"})
+thread = await connection.join(thread_id, "processor")
+grant = await thread.wait_for("charge", WaitOptions(timeout=15))
+# Perform the permitted operation before reporting it.
+result = await thread.step("charge").add_context({"amount": 42}).success(
+    "charged", wait_for=True, timeout=15,
+)
+await thread.wait_for_validation("charge", result.step_id)
+```
+
+The SDK derives both WebSocket and GraphQL paths from `engine_url`, retaining
+reverse-proxy prefixes. Wait timeouts use seconds. `wait_for` requests Engine
+permission; use `wait_for_notification` for the older notification-only behavior.
+Cancel a pending wait by cancelling its task. `await grant.cancel()` closes a
+granted invocation without restoring any consumed fresh prerequisites.
+
+Install `threadify-sdk[otel]` for the OTEL exporter. Recorded span and span-event
+timestamps are preserved even when export happens later.
 
 #### Next Steps
 

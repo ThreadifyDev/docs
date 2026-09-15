@@ -11,9 +11,8 @@ description: 'Install the Threadify SDK for Go projects'
 go get github.com/ThreadifyDev/go-sdk
 ```
 
-```bash go mod
-# Add to go.mod
-require github.com/ThreadifyDev/go-sdk latest
+```bash OTEL module
+go get github.com/ThreadifyDev/go-sdk/otel
 ```
 
 </CodeGroup>
@@ -42,8 +41,40 @@ import (
 
 ## Requirements
 
-- **Go version**: 1.19 or higher
+- **Go version**: 1.25 or higher
 - **Dependencies**: Automatically managed by Go modules
+
+## Self-hosted Engine and contract waits
+
+These examples target Go SDK 0.4 and later.
+
+```go
+conn, err := threadify.Connect(ctx, apiKey,
+    threadify.WithEngineURL("https://threadify.example.com"))
+if err != nil { return err }
+defer func() { _ = conn.Close() }()
+threads, err := conn.GetThreadsByRef(ctx, map[string]string{"order_id": "ORD-1001"})
+if err != nil { return err }
+_ = threads
+thread, err := conn.Join(ctx, threadify.WithJoinThreadID(threadID), threadify.WithJoinRole("processor"))
+if err != nil { return err }
+grant, err := thread.WaitFor(ctx, "charge", &threadify.WaitOptions{Timeout: 15 * time.Second})
+if err != nil { return err }
+_ = grant // Execute the operation, or call grant.Cancel(ctx) if abandoning it.
+result, err := thread.Step("charge").AddContext(map[string]any{"amount": 42}).Success(
+    ctx, "charged", threadify.ReportOptions{WaitFor: true})
+if err != nil { return err }
+validation, err := thread.WaitForValidation(ctx, "charge", result.StepID, nil)
+```
+
+Import `time` for duration options. `WithEngineURL` retains proxy prefixes and
+derives transport paths. `WaitFor` obtains an invocation grant; use
+`WaitForNotification` for notification-only waits. Context cancellation cancels
+pending Engine waits, and errors preserve request/event identifiers for recovery.
+Cancelling a grant does not restore consumed fresh prerequisites.
+
+The separate OTEL module preserves source timestamps and supports `RefsMap` to
+rename attributes into refs. Both SDK modules have race-test coverage in CI.
 
 #### Next Steps
 
