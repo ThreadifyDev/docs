@@ -3,12 +3,12 @@ title: Threadify CLI
 description: Sign in and manage contracts, entity profiles and threads from your terminal.
 ---
 
-Use `threadify-cli` to manage a running Engine. It does not start the Engine or
-its dependencies.
+Manage contracts, customer profiles and workflow history from your terminal with
+`threadify-cli`.
 
 ## Connect and sign in
 
-Use the same setup pattern as Fused CLI:
+Connect to your Threadify installation and sign in:
 
 ```sh
 threadify-cli config set api-url https://threadify.example.com
@@ -88,6 +88,9 @@ version; deletion requires `--yes`.
 
 ## Entity profile types and profiles
 
+Profiles bring together the workflows associated with a customer, order or other
+entity. Start by choosing the reference key your services use to identify it.
+
 Define `customers.yaml`:
 
 ```yaml
@@ -106,10 +109,13 @@ threadify-cli profiles get --id PROFILE_ID
 threadify-cli profiles history --id PROFILE_ID
 ```
 
-A profile type maps one to five reference keys to an entity category. Custom
-metrics, type updates and archiving remain in the Web API/UI. Creating the same
-type/reference pair again updates its name without changing its ID. Profiles
-may also be created asynchronously when thread references match a configured type.
+Use the ID returned by `profile-types create` for `TYPE_ID`. With this definition,
+threads carrying a `customer_id` reference contribute to that customer's profile.
+Allow a short delay for new activity to appear.
+
+You can also create a named profile before any activity arrives. Repeating the
+command for the same type and reference updates its name. To add metrics or edit
+the profile type, open **Entity Profiles** in the dashboard.
 
 ## Threads and references
 

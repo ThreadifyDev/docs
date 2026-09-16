@@ -5,7 +5,8 @@ description: Get Threadify running in 5 minutes
 
 ## Install your Engine
 
-For self-hosting, download the binary installer and run it:
+[Create your Threadify account](https://threadify.dev/signup) to get a license
+key, then install the Engine:
 
 ```bash
 curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
@@ -14,9 +15,9 @@ curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
 sh install.sh
 ```
 
-Configure your Registry license, PostgreSQL, Valkey and hash-chain secret, then
-run the start command printed by the installer. The dashboard and Web API are
-deployed separately. See the
+Edit the installed `config.yaml` with your license key, PostgreSQL connection
+and hash-chain secret, then run the start command printed by the installer.
+Open `http://localhost:8081` to sign in to your dashboard. See the
 [self-hosting guide](https://github.com/creativeJoe007/ThreadifyEngine/blob/main/threadify-go/SELF_HOSTING.md)
 for the full setup and [authentication](/authentication) for browser sign-in.
 
@@ -43,7 +44,7 @@ pip install threadify-sdk
 ## 2. Connect to Threadify
 
 <Note>
-  Need an API key? [Sign in to your Engine](/authentication), then open **API Keys** to create one.
+  Need an API key? [Sign in to your Engine](/authentication), then open **Developer → API Keys** to create one.
 </Note>
 
 <Tabs>
@@ -62,6 +63,7 @@ const connection = await Threadify.connect('your-api-key', 'my-service', {
 ctx := context.Background()
 conn, err := threadify.Connect(ctx, "your-api-key", 
     threadify.WithServiceName("my-service"),
+    threadify.WithEngineURL("https://threadify.example.com"),
 )
 if err != nil {
     log.Fatal(err)
@@ -77,6 +79,7 @@ from threadify import Threadify
 connection = await Threadify.connect(
     "your-api-key",
     service_name="my-service",
+    engine_url="https://threadify.example.com",
 )
 ```
 </Tab>
@@ -97,13 +100,13 @@ const thread = await connection.start('Order-789', 'order_fulfillment');
 <Tab title="Go">
 ```go
 // Start tracking a workflow with a label
-thread, err := conn.Start(ctx, "Order-123", "")
+thread, err := conn.Start(ctx, "Order-123")
 if err != nil {
     log.Fatal(err)
 }
 
 // Or start with a contract and a label
-thread, err := conn.Start(ctx, "Order-789", "order_fulfillment")
+thread, err = conn.Start(ctx, "Order-789", threadify.WithContract("order_fulfillment"))
 if err != nil {
     log.Fatal(err)
 }
@@ -139,7 +142,7 @@ await thread.step('process_data')
 ```go
 // Create step first, then call methods on it
 step := thread.Step("validate_input")
-_, err := step.AddContext(map[string]any{"userId": "user-123"}).Success(ctx)
+_, err = step.AddContext(map[string]any{"userId": "user-123"}).Success(ctx)
 if err != nil {
     log.Fatal(err)
 }

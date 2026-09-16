@@ -5,9 +5,9 @@ description: 'Sign in to Threadify and create credentials for the CLI and integr
 
 ## Sign in
 
-Open `/login`, then choose:
+Open your Threadify dashboard and choose a sign-in method:
 
-- **Continue with email or SSO** to use your Fused Registry identity.
+- **Continue with email or SSO** to sign in with your account.
 - **Sign in with API key** to create a browser session with that key's permissions.
 
 The license owner can sign in immediately. Everyone else must first be invited
@@ -19,7 +19,7 @@ revoking the source API key invalidates the session.
 
 ## API keys
 
-Open **API Keys** to create credentials for SDKs, OpenTelemetry and automation.
+Open **Developer → API Keys** to create credentials for SDKs, OpenTelemetry and automation.
 Use a service account with only the permissions the integration needs.
 
 For the CLI, run:
@@ -32,8 +32,7 @@ See the [CLI guide](/cli) for headless login and environment-variable setup.
 
 ## Self-host configuration
 
-The Engine and Web API must use the same PostgreSQL database, Registry license
-and installation ID. Set the public UI origin and Engine address in `config.yaml`:
+Set your license key and public dashboard address in `config.yaml`:
 
 ```yaml
 registry:
@@ -44,9 +43,10 @@ server:
   public_url: "https://threadify.example.com"
 ```
 
-Serve the UI, Engine and Web API from the same HTTPS hostname. Route `/auth/*`,
-`/graphql` and `/v1/*` to the Engine, and `/api/*` to the Web API. For local
-development, use either `localhost` or `127.0.0.1` consistently.
+Point your HTTPS reverse proxy at the Engine port. The dashboard and API are
+served from that address; host the dashboard at the root of the hostname.
+`browser_origin` must match the origin you open in the browser. For local use,
+keep the hostname consistent: choose either `localhost` or `127.0.0.1`.
 
 Administrators can override `server.public_url` in **Settings → Engine → Engine
 URL**. UI changes apply immediately; config changes require a restart.
