@@ -24,7 +24,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Get notification summary
 query {
   thread(id: "thread-123") {
@@ -89,14 +91,3 @@ query {
 | `executionCount` | Int! | Execution notifications |
 | `validationCount` | Int! | Validation notifications |
 | `hasCritical` | Boolean! | Has critical violations |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Contract Queries" icon="file-contract" href="/api-reference/contract-queries">
-    Query contract structure and rules
-  </Card>
-  <Card title="Integrity Verification" icon="link" href="/api-reference/integrity-verification">
-    Verify hash chain integrity
-  </Card>
-</CardGroup>

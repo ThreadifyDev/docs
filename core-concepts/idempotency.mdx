@@ -71,18 +71,12 @@ await (
 
 </CodeGroup>
 
+An execution grant supplies an invocation ID for its report, distinguishing
+separate permitted attempts. Outside that flow, use an explicit key when distinct
+operations have identical step names and context. Deduplication of reports does
+not make the external payment or tool call idempotent.
+
 ### Best Practices
 
 - Use a stable business identifier, such as an order or payment ID, for retries.
 - Never reuse a key for a different operation.
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Tracking Workflows" icon="route" href="/core-concepts/tracking-workflows">
-    Learn how to record steps in workflows
-  </Card>
-  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
-    Handle retries and failures properly
-  </Card>
-</CardGroup>

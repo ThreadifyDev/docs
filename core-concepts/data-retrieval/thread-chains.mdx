@@ -52,7 +52,7 @@ Array of `ArchivedThread` objects ordered from starting thread to descendants.
 - **Starting Point**: Works from any thread (root, middle, or leaf)
 - **Direction**: Traverses downward only (parent → children)
 - **Cycle Prevention**: Automatically detects circular references
-- **Archival Delay**: Requires 1-2 seconds for data persistence
+- **Archival delay**: Recent relationships appear after asynchronous persistence
 
 ## Relationship Types
 
@@ -62,14 +62,3 @@ Array of `ArchivedThread` objects ordered from starting thread to descendants.
 | `child` | Child thread for sub-processes |
 | `related` | Parallel or dependent workflow |
 | `followup` | Continuation of previous thread |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="External References" icon="link" href="/core-concepts/external-references">
-    Link threads together
-  </Card>
-  <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">
-    Query individual threads
-  </Card>
-</CardGroup>

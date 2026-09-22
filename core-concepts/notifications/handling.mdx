@@ -15,7 +15,7 @@ threadify.on('rule.violated', 'order_placed', async (notification) => {
     await processViolation(notification);
     notification.ack();  // ACK on success
   } catch (error) {
-    // Don't ACK - notification redelivered after 30s (max 3 attempts)
+    // Don't ACK on failure; allow configured redelivery
   }
 });
 ```
@@ -24,7 +24,7 @@ threadify.on('rule.violated', 'order_placed', async (notification) => {
 err := conn.Subscribe(ctx, "rule.violated", "order_placed", func(n *threadify.Notification) {
     err := processViolation(n)
     if err != nil {
-        // Don't ACK - notification redelivered after 30s (max 3 attempts)
+        // Don't ACK on failure; allow configured redelivery
         return
     }
     n.Ack() // ACK on success
@@ -40,7 +40,7 @@ def on_violation(notification):
         process_violation(notification)
         notification.ack()  # ACK on success
     except Exception:
-        # Don't ACK - notification redelivered after 30s (max 3 attempts)
+        # Don't ACK on failure; allow configured redelivery
         pass
 
 connection.subscribe("rule.violated", "order_placed", on_violation)
@@ -48,23 +48,13 @@ connection.subscribe("rule.violated", "order_placed", on_violation)
 
 </CodeGroup>
 
-### Retry Behavior
+### Retry behavior
 
-| Attempt | Delay | Action |
-|---------|-------|--------|
-| 1 | 0s | Initial delivery |
-| 2 | 30s | First retry (if no ACK) |
-| 3 | 30s | Second retry (if no ACK) |
-| Failed | - | Moved to Dead Letter Queue |
+The Engine's NATS consumer configuration controls the acknowledgement timeout and
+maximum delivery attempts. An acknowledgement can be lost after your handler has
+already completed, so the same notification can arrive again.
 
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Notification Architecture" icon="book" href="/things-to-know/notifications">
-    Learn about notification internals
-  </Card>
-  <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">
-    Query historical thread data
-  </Card>
-</CardGroup>
+Use the notification ID to deduplicate completed work, and use the destination
+service's idempotency mechanism when triggering an external action. Acknowledge
+after successful processing. Log failed handling attempts so you can investigate
+when the configured delivery limit is reached.

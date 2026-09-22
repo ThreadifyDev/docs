@@ -22,7 +22,9 @@ query {
     actor
   }
 }
+```
 
+```graphql
 # Get step with sub-steps
 query {
   thread(id: "thread-123") {
@@ -101,14 +103,3 @@ query {
 | `status` | String! | Sub-step status |
 | `payload` | JSON | Sub-step data |
 | `recordedAt` | String! | Recording timestamp |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Validation Queries" icon="shield-check" href="/api-reference/validation-queries">
-    Query contract validation results
-  </Card>
-  <Card title="Integrity Verification" icon="link" href="/api-reference/integrity-verification">
-    Verify hash chain integrity
-  </Card>
-</CardGroup>

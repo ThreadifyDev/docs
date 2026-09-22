@@ -3,12 +3,12 @@ title: Threadify CLI
 description: Sign in and manage contracts, entity profiles and threads from your terminal.
 ---
 
-Manage contracts, customer profiles and workflow history from your terminal with
-`threadify-cli`.
+## Install
+
+Download and verify a [CLI release](https://github.com/ThreadifyDev/cli/releases)
+and put `threadify-cli` on your PATH. Install it separately from the Engine.
 
 ## Connect and sign in
-
-Connect to your Threadify installation and sign in:
 
 ```sh
 threadify-cli config set api-url https://threadify.example.com
@@ -24,13 +24,12 @@ threadify-cli login --api-url https://threadify.example.com
 threadify-cli login --api-url https://threadify.example.com --no-browser
 ```
 
-If no URL is configured, `login` prompts for one. The browser opens the Engine's
-UI; sign in, then select **Approve CLI login**. Use `--no-browser` on remote
-terminals and `--no-input` or `CI=true` in non-interactive environments.
+Sign in to the Engine and select **Approve CLI login**. Missing URLs are prompted.
+Use `--no-browser` remotely; `--no-input` or `CI=true` disables prompts.
 
-The approval URL expires after five minutes and the CLI credential after 30 days.
-Role changes, suspension and source-key revocation invalidate existing logins.
-Self-hosted Engines must set `registry.browser_origin` to the deployed UI origin.
+Approval links last five minutes; credentials last 30 days. Role changes,
+suspension, or source-key revocation invalidate logins. Set the Engine's
+`registry.browser_origin` to its public UI origin.
 
 ```sh
 threadify-cli logout                # Revoke the saved managed CLI login
@@ -57,10 +56,9 @@ To save a key without putting it in command arguments, pipe it on stdin:
 printf '%s' "$THREADIFY_API_KEY" | threadify-cli config set --api-key-stdin
 ```
 
-Avoid `threadify-cli config set api-key KEY`: command arguments may be recorded
-in shell history. CLI config defaults to `$HOME/.config/threadify/cli.yaml` and
-can be moved with `THREADIFY_CLI_CONFIG`. Changing the saved API URL clears the
-saved credential.
+Stdin avoids putting the key in shell arguments. Config lives at
+`$HOME/.config/threadify/cli.yaml`; override with `THREADIFY_CLI_CONFIG`.
+Changing the saved Engine URL clears its credential.
 
 URL precedence is `--api-url`, `THREADIFY_API_URL`, `THREADIFY_ENGINE_URL`, then
 saved config. Credential precedence is `--key`, the saved credential for that
@@ -70,28 +68,37 @@ Commands print JSON to stdout, errors to stderr and exit nonzero on failure.
 Writes are not retried automatically; check state before retrying a timed-out
 write. Use `--timeout 30s` to change the timeout and `--file -` to read stdin.
 
+## Trace ingestion rules
+
+```sh
+threadify-cli ingestion-rules get > rules.json
+# Edit filters, keeping the revision; use [] to disable.
+threadify-cli ingestion-rules set --file rules.json
+threadify-cli ingestion-rules preview --file preview.yaml
+```
+
+Admin access is required to save. Rules apply to `/v1/traces`, not SDK events.
+See [filtering](/opentelemetry#filter-trace-data) for the preview format and scope.
+
 ## Contracts
 
 ```sh
-threadify-cli contracts preview --file contract.yaml
-threadify-cli contracts create --file contract.yaml
+threadify-cli contracts preview --file contract.feature
+threadify-cli contracts create --file contract.feature
 threadify-cli contracts list --search checkout --limit 25 --offset 0
 threadify-cli contracts get --id CONTRACT_ID
-threadify-cli contracts update --id CONTRACT_ID --file contract-v2.yaml
+threadify-cli contracts update --id CONTRACT_ID --file contract-v2.feature
 threadify-cli contracts versions --id CONTRACT_ID
 threadify-cli contracts get --id CONTRACT_ID --version 1
 threadify-cli contracts delete --id CONTRACT_ID --yes
 ```
 
-Files can contain Engine-compatible YAML or Gherkin. Updates create a new
+Gherkin is the primary contract format; legacy YAML is temporarily accepted. Updates create a new
 version; deletion requires `--yes`.
 
 ## Entity profile types and profiles
 
-Profiles bring together the workflows associated with a customer, order or other
-entity. Start by choosing the reference key your services use to identify it.
-
-Define `customers.yaml`:
+Choose a reference key for the entity. Save as `customers.yaml`:
 
 ```yaml
 name: Customers
@@ -109,13 +116,9 @@ threadify-cli profiles get --id PROFILE_ID
 threadify-cli profiles history --id PROFILE_ID
 ```
 
-Use the ID returned by `profile-types create` for `TYPE_ID`. With this definition,
-threads carrying a `customer_id` reference contribute to that customer's profile.
-Allow a short delay for new activity to appear.
-
-You can also create a named profile before any activity arrives. Repeating the
-command for the same type and reference updates its name. To add metrics or edit
-the profile type, open **Entity Profiles** in the dashboard.
+Use the returned type ID. Threads with matching `customer_id` refs populate the
+profile after archival. Profiles can be created before activity; repeating the
+same type and ref updates the name. Configure metrics under **Entity Profiles**.
 
 ## Threads and references
 
@@ -142,3 +145,17 @@ For other Engine queries:
 threadify-cli graphql --file query.graphql --variables '{"id":"THREAD_ID"}'
 threadify-cli help
 ```
+
+## Coding-agent skills
+
+Install the bundled contract and investigation instructions for your coding agent:
+
+```sh
+threadify-cli skills install --agent codex
+threadify-cli skills install --agent all
+```
+
+Supported targets are `codex`, `claude`, `cursor`, and `copilot`. User scope is
+the default; add `--project` for the current repository. Existing modified skills
+are preserved unless `--force` is specified. Installation does not supply
+credentials or start the Engine. Contract validation itself remains deterministic.

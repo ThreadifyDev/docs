@@ -1,73 +1,66 @@
 ---
-title: 'Working with Contracts'
-description: 'Define contracts that ensure workflows follow the right process'
+title: Use a contract
+description: Attach a versioned contract to a thread and record its steps.
 ---
 
-When a thread is created with a contract, Threadify uses that contract to validate record steps and identifies violations, failed business logic, race conditions, etc.
-
-<Note>
-New to contracts? Learn how to [create a contract](/core-concepts/creating-contracts) first.
-</Note>
-
-### Starting with a Contract
-
-Start a thread with a contract to enable automatic validation:
+[Create `refund_review`](/core-concepts/creating-contracts) before running these
+examples. Connect the SDK to your Engine with an API key and report as the
+contract's `processor` role.
 
 <CodeGroup>
-
 ```javascript JavaScript
-// Use latest version with a label (recommended)
-const thread = await threadify.start('Order-123', 'order_fulfillment');
-
-// Use specific version with a label
-const thread = await threadify.start('Order-123', 'order_fulfillment:2');
+const thread = await connection.start('Refund RF-123', 'refund_review', {
+  serviceName: 'processor'
+});
+await thread.step('approval').addContext({ reference: 'RF-123' })
+  .success('Approved', { waitFor: true });
+await thread.step('refund').addContext({
+  reference: 'RF-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678'
+}).success('Refund recorded', { waitFor: true });
 ```
-
 ```go Go
-// Use latest version with a label (recommended)
-thread, err := conn.Start(ctx, "Order-123", "order_fulfillment")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Use specific version with a label
-thread, err := conn.Start(ctx, "Order-123", "order_fulfillment:2")
-if err != nil {
-    log.Fatal(err)
-}
+thread, err := conn.Start(ctx, "Refund RF-123",
+    threadify.WithContract("refund_review"),
+    threadify.WithRole("processor"),
+)
+if err != nil { return err }
+_, err = thread.Step("approval").AddContext(map[string]any{"reference": "RF-123"}).
+    Success(ctx, "Approved", threadify.ReportOptions{WaitFor: true})
+if err != nil { return err }
+_, err = thread.Step("refund").AddContext(map[string]any{
+    "reference": "RF-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678",
+}).Success(ctx, "Refund recorded", threadify.ReportOptions{WaitFor: true})
+if err != nil { return err }
 ```
-
 ```python Python
-# Use latest version with a label (recommended)
-thread = await connection.start("Order-123", contract_name="order_fulfillment")
-
-# Use specific version with a label
-thread = await connection.start("Order-123", contract_name="order_fulfillment:2")
+thread = await connection.start("Refund RF-123", contract_name="refund_review", role="processor")
+await thread.step("approval").add_context({"reference": "RF-123"}).success(
+    "Approved", wait_for=True,
+)
+await thread.step("refund").add_context({
+    "reference": "RF-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678",
+}).success("Refund recorded", wait_for=True)
 ```
-
 </CodeGroup>
 
-### What Contracts Validate
+These examples record outcomes; they do not execute a real refund. To prevent
+an operation before it happens, obtain a [permission grant](/core-concepts/execution-waits)
+and execute only after it succeeds.
 
-**Entry points** - The first step must be a valid entry point defined in the contract.
+## Versions
 
-**Transitions** - Steps must follow the allowed transitions defined in the contract.
+Pass `refund_review:2` to choose a specific version. Omitting the version selects
+the latest when the thread is created; publishing a later version does not
+rewrite an existing thread's contract.
 
-**Required fields** - Context provided with each step must include all required fields.
+## Interpret results
 
-**Terminal states** - Threads automatically complete when reaching a terminal node.
+- A normal recording acknowledgement is not a completed validation decision.
+- `{ waitFor: true }` waits for that particular reported event's validation.
+- A failed operation can satisfy its contract; operation outcome and rule
+  compliance are separate facts.
+- A successfully validated terminal step completes the thread.
 
-<Info>
-Violations are reported via notifications but don't block execution. Learn how to [subscribe to violations](/core-concepts/notifications/subscribing).
-</Info>
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Inviting Parties" icon="users" href="/core-concepts/thread-collaboration/inviting-parties">
-    Invite others to collaborate on threads
-  </Card>
-  <Card title="Notifications" icon="bell" href="/core-concepts/notifications/subscribing">
-    Subscribe to validation alerts
-  </Card>
-</CardGroup>
+Subscribe to [notifications](/core-concepts/notifications/subscribing) or inspect
+[validation results](/core-concepts/data-retrieval/validation-results) to investigate
+violations. Recording telemetry does not automatically stop the caller's code.

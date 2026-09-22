@@ -61,7 +61,9 @@ await (
 
 ### Querying by Reference
 
-Refs can match multiple threads; they do not enforce uniqueness or merge threads.
+Ordinary business refs can match multiple threads; they do not enforce uniqueness
+or merge threads. The reserved `threadify.external_ref` has different semantics
+for explicit run correlation.
 JavaScript lookups accept exactly one ref pair, with filters in an optional second
 argument. See [Getting Threads](/core-concepts/data-retrieval/getting-threads) for
 pagination, return values, and examples.
@@ -105,3 +107,14 @@ threads = await conn.get_threads_by_ref(
     Query workflow data
   </Card>
 </CardGroup>
+
+## Run correlation is different
+
+`threadify.external_ref` identifies one logical run. OTLP ingestion uses it ahead
+of `workflow.run_id`, then falls back to a trace ID. Several traces with the same
+run reference can contribute to one thread. Use a unique value for each run;
+a customer ID belongs in a business ref instead.
+
+This is separate from the Engine's internal thread UUID and from ordinary refs
+such as `customer_id`. Correlation conflicts are rejected; existing threads are
+not retroactively merged. See [OpenTelemetry](/opentelemetry) for configuration.

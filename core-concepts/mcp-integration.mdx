@@ -1,53 +1,39 @@
 ---
-title: 'MCP Integration'
-description: 'Connect AI assistants directly to your Threadify execution graphs.'
+title: MCP integration
+description: Give an assistant access to execution evidence on your Engine.
 ---
 
-## Overview
+Connect an MCP client using these settings:
 
-The MCP server lets compatible AI assistants query threads, contracts and
-integrity results from Threadify.
+| Setting | Value |
+| --- | --- |
+| Transport | **Streamable HTTP**, despite the `/sse` path |
+| URL | `https://threadify.example.com/sse` |
+| Header | `X-API-Key: YOUR_ENGINE_API_KEY` |
 
-<Info>
-**MCP Server URL:** [https://mcp.threadify.dev](https://mcp.threadify.dev)
-</Info>
+Use your Engine address, available under **Settings → Engine**. Its embedded
+MCP endpoint needs no separate server package.
 
-## Connection Setup
+## Tools
 
-Add the server to your MCP client configuration:
+| Tool | Purpose |
+| --- | --- |
+| `get_thread` | Inspect a thread and its recorded execution |
+| `search_threads` | Find threads by contract, actor, status, dates, or tags |
+| `get_entity_profile` | Read an entity's profile, metrics, and health |
+| `get_contract_violations` | Find recorded rule violations |
+| `query` | Run a GraphQL query for more specific evidence |
 
-```json
-{
-  "mcpServers": {
-    "threadify": {
-      "command": "npx",
-      "args": ["-y", "@threadify/mcp-server"],
-      "env": {
-        "THREADIFY_API_KEY": "your_api_key_here",
-        "THREADIFY_URL": "https://mcp.threadify.dev"
-      }
-    }
-  }
-}
-```
+The `graphql://schema` resource exposes the schema. Built-in prompts include
+`investigate_thread`, `analyse_entity_delivery`, and `identify_delivery_failures`.
+Discover tool input schemas through your MCP client.
 
-## Available Tools
+## What an assistant can tell you
 
-| Tool | Parameters | Description |
-|---|---|---|
-| `get_thread` | `id` (string) | Retrieve a complete thread by ID, including all its steps and status. |
-| `search_threads` | `contractName` (string)<br/>`status` (string, optional)<br/>`limit` (int, optional) | Find threads matching specific filters. |
-| `contract_graph` | `name` (string)<br/>`version` (int, optional) | Get the expected workflow structure (DAG) of a contract. |
-| `resolve_actors` | `ids` (array of strings) | Convert an array of actor UUIDs to human-readable names. |
-| `verify_thread_integrity` | `threadId` (string) | Cryptographically verify that a thread's hash chain is intact and no steps were skipped. |
-| `graphql_query` | `query` (string)<br/>`variables` (object, optional) | Execute custom GraphQL queries for granular data extraction. |
+Ask what failed, which approval preceded an action, or which problems recur.
+Answers depend on recorded history and the key's permissions. For empty results,
+check filters and telemetry ingestion.
 
-## Resources and Prompts
-
-**Resources:**
-- `graphql://schema`: Exposes the entire Threadify GraphQL schema, allowing the agent to discover all available query fields when using the `graphql_query` tool.
-
-**Prompts:**
-- `debug_silent_failure`: Investigates why a process successfully responded to the HTTP request but stalled in the business logic downstream.
-- `verify_process_integrity`: Validates a thread against tampering, missing steps, or out-of-order execution.
-- `analyze_workflow`: Aggregates thread execution data to find bottlenecks and patterns across a specific contract series.
+MCP investigation does not enforce tool execution. Use
+[execution waits](/core-concepts/execution-waits) in the tool handler when a
+contract must gate the action itself.

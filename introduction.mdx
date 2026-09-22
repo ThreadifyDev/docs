@@ -1,20 +1,32 @@
 ---
 title: Introduction
-description: Service-delivery intelligence for how your business delivers
+description: Understand execution, check shared rules, and give every decision its history.
 ---
 
-## Welcome to Threadify
+Threadify records execution, checks shared rules, and connects history across
+services and AI agents. Your application runs the work; Threadify acts as its referee.
 
-**Every customer request tells a story. Do you know yours?**
+| Task | Use |
+| --- | --- |
+| Record operations and outcomes | SDK steps or OpenTelemetry spans |
+| Define order, approvals, and content rules | Gherkin-style contracts |
+| Check permission before an action | An explicit SDK `waitFor` call |
+| Review history and metrics across runs | Entity profiles |
 
-Every customer request sets a delivery process in motion — crossing services, teams, partners, and boundaries that no single system can see end to end. Threadify is a **service-delivery intelligence system** that captures and validates how your business delivers on every request, turning that into intelligence your teams, systems, and AI agents can act on.
+Keep each contract focused on a section of a workflow, such as refund approval.
+References connect related work.
 
-## What is Threadify?
+Run an Engine for your company. It serves the dashboard and APIs, stores history
+in your PostgreSQL database, and gets license allowances from Fused Registry.
 
-Threadify instruments your delivery process as it happens. Wrap your business steps with our SDK to build a live execution graph across every service and boundary involved. Instead of guessing or log diving, query by customer ID, order number, or support ticket to get the full execution story instantly.
+<CardGroup cols={2}>
+  <Card title="Run the Engine" icon="server" href="/self-hosting">Install a binary or Docker image and configure persistence.</Card>
+  <Card title="Record your first workflow" icon="bolt" href="/quickstart">Connect an SDK to your Engine.</Card>
+  <Card title="Write a contract" icon="file-contract" href="/core-concepts/creating-contracts">Express deterministic rules in Gherkin-style text.</Card>
+  <Card title="Check before execution" icon="shield" href="/core-concepts/execution-waits">Gate an operation with an explicit SDK wait.</Card>
+</CardGroup>
 
-**Key capabilities:**
-- **Capture Process Execution:** Build real-time execution graphs as flows happen, extending even to external partners.
-- **Real-Time Validation:** Define correct behavior with a contract and validate every execution the moment it happens.
-- **Team Intelligence:** Ask Threadify what happened to any customer request in plain English and get the full story instantly.
-- **System & Agent Intelligence:** Empower AI agents and systems with full delivery context so they know what happened before deciding what to do next.
+<Note>
+Telemetry records actions after they happen. To block an action, your code must
+wait for permission before executing it.
+</Note>

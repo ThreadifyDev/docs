@@ -1,0 +1,62 @@
+---
+title: Troubleshooting
+description: Diagnose authentication, quotas, missing traces, and uncertain validation outcomes.
+---
+
+## API requests return 429
+
+Check the [Registry plan allowances](/plans-and-limits). A zero or missing
+`input_requests_per_second` can block traffic continuously. A quota can affect
+dashboard routes as well as telemetry; the plan page is not currently exempt.
+Check any reverse-proxy limiter too. Restart Registry after YAML changes and
+allow the Engine's next successful heartbeat to refresh its limits.
+
+## Traces return 401 or 415
+
+- **401:** send `X-API-Key` with an active Engine API key. The Registry license
+  is the installation credential, not the normal telemetry credential.
+- **415:** use OTLP/HTTP protobuf at `/v1/traces`, with
+  `Content-Type: application/x-protobuf`. Do not post ordinary JSON or gRPC there.
+
+A successful export can still report rejected spans. Inspect the OTLP response's
+partial-success details and Engine logs.
+
+## An assistant finds no threads
+
+Confirm its MCP URL points to the same Engine receiving telemetry. Check the
+API key, trace-export responses, time range, contract and actor filters. Archived
+queries can lag behind accepted events. Inspect an unfiltered history before
+assuming telemetry is absent.
+
+## Too many tiny threads
+
+Inspect the trace IDs and run attributes. Set a consistent `workflow.run_id` or
+`threadify.external_ref` for spans belonging to the same logical run. Use a new
+value for each run, and keep its contract consistent. This does not merge old
+stored threads. [Correlation rules](/opentelemetry).
+
+## Browser sign-in fails behind a proxy
+
+Set `registry.browser_origin` to the exact public HTTPS origin, serve the
+dashboard at the hostname root, and forward WebSocket upgrades. Use one hostname
+consistently: `localhost` and `127.0.0.1` are different browser origins. Registry
+must provide the identity flow, and non-owner users need an Engine invitation.
+
+## A wait timed out
+
+A timeout is not permission. If an accepted report returned a `stepId`, resume
+with `waitForValidation` instead of reporting the outcome again. Recover uncertain
+permission requests using their original invocation ID. Preserve Valkey state and
+resolve abandoned claims. See [execution waits](/core-concepts/execution-waits).
+
+## Completion is 100%, but health degraded
+
+Completion measures the eventual outcome. Failed attempts, retries, delays, and
+rule violations are different evidence. Inspect the configured metrics and
+underlying threads in the [entity profile](/core-concepts/entity-profiles).
+
+## Startup asks for subscription.yaml
+
+That is an older Engine build. v1.1.2 still loads the file. The current source
+removes this dependency; use a release containing that change before removing
+the file from an older installation. `threadify --version` prints the build.

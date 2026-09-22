@@ -1,103 +1,101 @@
 ---
-title: 'Creating a Contract'
-description: 'Define business rules and validation logic for your workflows'
+title: Create a contract
+description: Write deterministic rules for a focused part of your workflow.
 ---
 
-Contracts define valid steps, transitions, required context and timeouts for a
-workflow. Threadify validates each contracted thread as it runs.
+A contract defines a thread's steps, owners, prerequisites, and content checks.
+Its Gherkin-style source compiles into deterministic rules; no AI interprets them.
 
-### Contract Structure
+## A complete contract
 
-<CodeGroup>
+Save this as `refund.feature`:
 
-```yaml YAML
-contract_name: order_fulfillment
-version: 1
-description: E-commerce order fulfillment workflow
+```gherkin
+Feature: refund_review
+Version: 1
+Description: Approve and record a valid refund.
 
-# Entry points - where threads can start
-entry_points:
-  - order_placed
+Rule: Approve the request
+  When step "approval" is submitted
+  Then owner must be "processor"
+  And this step is an entry point
+  And content "reference" must not be empty
 
-# Parties involved in the workflow
-parties:
-  - merchant
-  - logistics
-
-# Steps in the workflow
-steps:
-  - id: order_placed
-    owner: merchant
-    type: managed
-    timeout: 5m
-    business_context:
-      required:
-        - order_id
-        - product_id
-        - quantity
-      optional:
-        - customer_notes
-
-  - id: inventory_checked
-    owner: merchant
-    type: managed
-    timeout: 1m
-    business_context:
-      required:
-        - in_stock
-        - warehouse_id
-
-  - id: shipment_created
-    owner: logistics
-    type: managed
-    timeout: 24h
-    business_context:
-      required:
-        - tracking_number
-        - carrier_name
-
-# Transitions define valid step flows
-transitions:
-  - from: order_placed
-    to:
-      - inventory_checked
-
-  - from: inventory_checked
-    to:
-      - shipment_created
-      - order_cancelled
-
-# Terminal steps - where threads can end
-terminal_steps:
-  - order_delivered
-  - order_cancelled
-
-# Thread-level timeout
-max_duration: 7d
+Rule: Record the refund
+  When step "refund" is submitted
+  Then owner must be "processor"
+  And step "approval" must have succeeded
+  And content "reference" must equal approval.reference
+  And content "amount" must be a number greater than 0
+  And content "currency" must be one of "GBP", "USD", "EUR"
+  And content "receipt" must match regex "^RF-[0-9]{8}$"
+  And this step is terminal
 ```
 
-</CodeGroup>
+`Feature` names the contract; each `Rule` defines one step. All its clauses must
+hold. Only the supported vocabulary is accepted—this is not a Cucumber runner.
 
-### Key Components
+## Preview and create
 
-| Component | Description |
-|-----------|-------------|
-| `contract_name` | Unique identifier for the contract |
-| `version` | Contract version number (supports evolution) |
-| `entry_points` | Valid starting steps for threads |
-| `parties` | Roles involved in the workflow |
-| `steps` | Step definitions with timeouts and required fields |
-| `transitions` | Valid step-to-step flows |
-| `terminal_steps` | Steps that complete the thread |
-| `max_duration` | Thread-level timeout |
+In the dashboard, open **Contracts** and use the contract editor. Or use the CLI:
 
-### Next Steps
+```sh
+threadify-cli contracts preview --file refund.feature
+threadify-cli contracts create --file refund.feature
+```
 
-<CardGroup cols={2}>
-  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
-    Learn how to use contracts in your code
-  </Card>
-  <Card title="Tracking Workflows" icon="route" href="/core-concepts/tracking-workflows">
-    Record steps in your workflow
-  </Card>
-</CardGroup>
+Preview checks the contract and displays its compiled structure without saving.
+To update, increase `Version` and run:
+
+```sh
+threadify-cli contracts update --id CONTRACT_ID --file refund.feature
+```
+
+Use `.feature` for new contracts. Legacy YAML remains temporarily supported.
+
+## Common clauses
+
+| Clause | Purpose |
+| --- | --- |
+| `owner must be "processor"` | Identify the party allowed to report the step |
+| `step "approval" must have succeeded` | Require a previous successful approval |
+| `step "approval" must succeed before each invocation` | Require fresh approval for each attempt |
+| `this step is an entry point` | Allow the workflow to start here |
+| `this step is terminal` | Complete the thread after successful validation |
+| `next step must be one of "refund", "cancel"` | Declare strict immediate transitions to defined steps |
+| `this step must finish within "30s"` | Validate the recorded step duration |
+| `content "reference" must be present` | Require a field, allowing an empty value |
+| `content "reference" must not be empty` | Require non-whitespace text |
+| `content "amount" must be a number greater than 0` | Check a numeric bound |
+| `content "currency" must be one of "GBP", "USD"` | Check allowed values |
+| `content "approved" must be a boolean` | Require `true` or `false` |
+| `content "receipt" must match regex "^RF-[0-9]{8}$"` | Check text against a regular expression |
+
+Dependencies allow intervening work. Once you use explicit `next step` rules,
+declare every allowed immediate transition. These are different flow policies.
+See the [complete rule vocabulary](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/docs/GHERKIN_CONTRACTS.md)
+for timeout, retry, and thread-wide clauses.
+
+## Content and earlier steps
+
+Content checks read the context added to a step. Values are represented as
+strings. Dotted field names are literal keys, not nested paths.
+
+An unquoted `approval.reference` reads the same thread's latest validated
+successful `approval`. A quoted `"approval.reference"` is literal text. A
+cross-step reference also implies a dependency. Missing data or unavailable
+state rejects the submission; Threadify does not silently use an older value.
+
+Regex matching uses Go's RE2-style syntax. Use `^` and `$` for a whole-value
+match. Lookaround and backreferences are unsupported. Double backslashes in
+quoted Gherkin strings, or use `[0-9]` rather than `\d`. Invalid patterns are
+rejected during preview and creation.
+
+## Validation timing
+
+Content and owner checks can reject a submission before recording it. Flow,
+prerequisite, retry, and timing validation uses asynchronous workers; an
+acknowledged event can later be marked violated.
+
+Use [execution waits](/core-concepts/execution-waits) for permission before an
+action or to wait for the exact validation result after reporting it.

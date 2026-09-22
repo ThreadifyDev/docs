@@ -1,305 +1,233 @@
 ---
-title: "OpenTelemetry Integration"
-description: "Automatically generate service-delivery graphs from your existing OpenTelemetry traces."
+title: OpenTelemetry
+description: Send existing spans to your Engine and choose how they form threads.
 ---
 
-The Threadify exporter converts existing OpenTelemetry traces into Threadify
-execution graphs, without adding `thread.step()` calls to application code.
+Export spans through OTLP/HTTP or a Threadify SDK exporter. Report each operation
+once; do not duplicate its span with an SDK step report.
 
-## The Mapping Model
+## Direct OTLP/HTTP ingestion
 
-| OpenTelemetry Concept | Threadify Concept | Description |
-| :--- | :--- | :--- |
-| **Trace** | **Thread** | A Trace represents an entire business workflow (e.g., *Customer Checkout*). |
-| **Span** | **Step** | A Span represents a major operation (e.g., *process_payment*). |
-| **Span Event** | **Sub-Step** | An Event is a specific milestone during the operation (e.g., *validated_card*). |
-| **Span Link** | **Link** | *Coming Soon.* |
+Configure a standard exporter with your Engine's URL and an Engine API key:
 
-## Status Mapping
+```sh
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT='https://threadify.example.com/v1/traces'
+export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL='http/protobuf'
+export OTEL_EXPORTER_OTLP_TRACES_HEADERS="X-API-Key=$THREADIFY_API_KEY"
+```
 
-| Span Status | Threadify Outcome | Rationale |
-| :--- | :--- | :--- |
-| `SpanStatus.OK` | **success** | Explicitly marked as successful by the developer. |
-| `SpanStatus.ERROR` | **failed** | Explicitly marked as a failure or exception. |
-| `SpanStatus.UNSET` | **success** | The default status. Threadify treats "no error" as a successful delivery. |
+Set equivalent SDK options if your exporter does not read these variables.
 
-<Note>`UNSET` is treated as success because OpenTelemetry uses it when no error was recorded.</Note>
+| Requirement | Value |
+| --- | --- |
+| Endpoint | `POST /v1/traces` |
+| Format | **OTLP Protobuf**, `Content-Type: application/x-protobuf` |
+| Authentication | `X-API-Key` with an Engine API key |
+| Compression | Optional gzip |
+| Batch limit | 64 MiB compressed and decoded; 10,000 spans |
 
-## 1. Setup the Exporter
+JSON and gRPC are not accepted here. A separate collector can forward gRPC input
+as OTLP/HTTP. Plan bandwidth allowances also apply.
 
-Create the exporter and register it with your OpenTelemetry `TracerProvider`.
+## Threadify SDK exporter
 
-<Tabs>
-<Tab title="Node.js">
+The JavaScript exporter uses your existing Threadify WebSocket connection:
 
 ```javascript
 import { Threadify } from '@threadify/sdk';
 import { trace } from '@opentelemetry/api';
-import { BasicTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { BasicTracerProvider, BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
-// 1. Establish your Threadify Connection
-const connection = await Threadify.connect('your-api-key', 'your-service');
-
-// 2. Create the Threadify Exporter
-// Map span attributes to Threadify "Refs" using custom ref keys
-const exporter = connection.createSpanExporter({
-  refs: { orderId: 'order.id', customerId: 'customer.id' }
+const connection = await Threadify.connect(process.env.THREADIFY_API_KEY, 'processor', {
+  engineUrl: 'https://threadify.example.com'
 });
-
-// Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
 const exporter = connection.createSpanExporter({
-  refs: { orderId: 'order.id', customerId: 'customer.id' },
-  filters: ['invoke_llm', 'adk.before*', 'llm.*']
+  refs: { customer_id: 'customer.id' },
+  filters: ['internal.*'],
+  useWorkflowRunId: true
 });
-
-// 3. Attach the Exporter to OpenTelemetry
 const provider = new BasicTracerProvider({
-  spanProcessors: [new SimpleSpanProcessor(exporter)]
+  spanProcessors: [new BatchSpanProcessor(exporter)]
 });
 trace.setGlobalTracerProvider(provider);
 ```
 
-</Tab>
-<Tab title="Go">
+Flush/shut down the provider before closing the connection when your process exits.
+See [filtering](#filter-trace-data) to exclude spans or remove sensitive fields.
 
-Because Go is statically typed, the OpenTelemetry integration is provided via a separate sub-module so the core Threadify SDK remains lightweight.
+For Go, install `github.com/ThreadifyDev/go-sdk/otel` and use
+`threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{...})`.
+Use `RefsMap` for attribute-to-ref mappings; `Refs` is a list of attribute names.
+For Python, install `threadify-sdk[otel]` and use
+`connection.create_span_exporter(options={...})` with your tracer provider.
 
-```bash
-go get github.com/ThreadifyDev/go-sdk/otel
+## Filter trace data
+
+### Drop whole spans
+
+Configure the Threadify SDK exporter:
+
+<CodeGroup>
+```javascript JavaScript
+const exporter = connection.createSpanExporter({
+  filters: ['healthcheck', 'internal.*']
+});
+```
+```go Go
+exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+    Filters: []string{"healthcheck", "internal.*"},
+})
+```
+```python Python
+exporter = connection.create_span_exporter(options={
+    "filters": ["healthcheck", "internal.*"]
+})
+```
+</CodeGroup>
+
+- `healthcheck` drops that exact span name.
+- `internal.*` drops names beginning with `internal.`.
+- Matching is case-sensitive, against the original span name, before `threadify.step_name` mapping.
+- Only a trailing `*` is supported; these are not regex patterns.
+
+Each span is filtered independently. Dropping a parent does not drop its children.
+Keep steps required by contracts and spans carrying the run's completion signal.
+
+### Filter every OTLP exporter at the Engine
+
+Open **Settings → Trace ingestion**. Enter one exact name or trailing-`*` prefix
+per line, preview sample names, then save. An administrator must save changes.
+Empty rules keep all spans.
+
+These rules apply only to `POST /v1/traces`, before threads or steps are created.
+Threadify SDK WebSocket events and SDK span exporters are unaffected. Rules match
+original span names, before `threadify.step_name` mapping.
+
+With the CLI:
+
+```sh
+threadify-cli ingestion-rules get > rules.json
+# Edit filters; preserve revision from the response.
+threadify-cli ingestion-rules set --file rules.json
 ```
 
-```go
-import (
-    "context"
+Preview without saving using `preview.yaml`:
 
-    "go.opentelemetry.io/otel"
-    sdktrace "go.opentelemetry.io/otel/sdk/trace"
-
-    threadify "github.com/ThreadifyDev/go-sdk"
-    threadifyotel "github.com/ThreadifyDev/go-sdk/otel"
-)
-
-func main() {
-    ctx := context.Background()
-
-    // 1. Establish your Threadify Connection
-    conn, _ := threadify.Connect(ctx, "your-api-key",
-        threadify.WithServiceName("my-service"),
-    )
-    defer conn.Close()
-
-    // 2. Create the Threadify Exporter
-    exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
-        Refs: map[string]string{"orderId": "order.id", "customerId": "customer.id"},
-    })
-
-    // Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
-    exporter = threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
-        Refs:    map[string]string{"orderId": "order.id", "customerId": "customer.id"},
-        Filters: []string{"invoke_llm", "adk.before*", "llm.*"},
-    })
-
-    // 3. Attach the Exporter to OpenTelemetry
-    provider := sdktrace.NewTracerProvider(
-        sdktrace.WithBatcher(exporter),
-    )
-    otel.SetTracerProvider(provider)
-    defer provider.Shutdown(ctx)
-
-    // ... your application code
-}
+```yaml
+filters: [healthcheck, "internal.*"]
+span_names: [healthcheck, internal.cache, refund]
 ```
 
-</Tab>
-<Tab title="Python">
-
-The Python SDK includes the OpenTelemetry SpanExporter in the core package.
-
-```bash
-pip install opentelemetry-api opentelemetry-sdk
+```sh
+threadify-cli ingestion-rules preview --file preview.yaml
 ```
 
-```python
-from opentelemetry import trace
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from threadify import Threadify
+- Saves apply to the next batch across replicas sharing Valkey. In-flight batches
+  can finish under their previous rules; existing history is unchanged.
+- Rules and counts persist in Valkey without a TTL. Preserve its data volume.
+- Stale saves return `409`; reload and review before retrying.
+- Unavailable rules storage returns `503` instead of bypassing filtering.
+- Filtered exports succeed, including batches with no remaining spans. The
+  `X-Threadify-Filtered-Spans` response header reports each batch's drop count.
+- The settings page shows cumulative evaluated and dropped delivery attempts,
+  including retries. Preview does not change counts. Counter-write failures are
+  logged, so these are diagnostic counts, not billing totals.
+- Received bytes still count toward input bandwidth. Keep contract-required steps
+  and run completion signals in your retained spans.
 
-async def main():
-    # 1. Establish your Threadify Connection
-    conn = await Threadify.connect(
-        "your-api-key",
-        service_name="my-service",
-    )
+### Remove fields from retained spans
 
-    # 2. Create the Threadify Exporter
-    exporter = conn.create_span_exporter(
-        options={"refs": {"orderId": "order.id", "customerId": "customer.id"}}
-    )
+Span filters do not redact attributes, prompts, payloads, or event data. `refs`
+maps attributes to references; it is not an attribute allowlist.
 
-    # Optionally filter out noisy spans by name (exact match or prefix wildcard with *)
-    exporter = conn.create_span_exporter(
-        options={
-            "refs": {"orderId": "order.id", "customerId": "customer.id"},
-            "filters": ["invoke_llm", "adk.before*", "llm.*"],
-        }
-    )
+Omit unwanted values in your instrumentation or remove them before export.
+Threadify has no built-in field-redaction option. Check span and resource
+attributes, events, and status messages; preserve fields needed by contracts.
 
-    # 3. Attach the Exporter to OpenTelemetry
-    provider = TracerProvider()
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
+## Choose the thread identity
 
-    # ... your application code
+The correlation precedence is:
+
+1. `threadify.thread_id`: an existing internal Threadify thread ID.
+2. `threadify.external_ref`: your explicit reference for this logical run.
+3. `workflow.run_id`: used by default when no explicit reference is supplied.
+4. OpenTelemetry trace ID: the fallback when none of the above applies.
+
+A shared run reference combines traces into one thread. Use a unique value per
+run, consistently set on its spans or dedicated resource. References must be
+nonblank strings of at most 1024 UTF-8 bytes after trimming.
+
+Existing threads are not merged retroactively. Conflicting identities or
+contracts are rejected.
+
+### Keep one trace per thread
+
+Disable the workflow-run fallback on the direct traces URL:
+
+```text
+https://threadify.example.com/v1/traces?use_workflow_run_id=false
 ```
 
-</Tab>
-</Tabs>
+Or on the exporter:
 
-<Note>Ended spans are exported automatically; the exporter manages thread lifecycles.</Note>
+<CodeGroup>
+```javascript JavaScript
+const exporter = connection.createSpanExporter({ useWorkflowRunId: false });
+```
+```go Go
+useWorkflow := false
+exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+    UseWorkflowRunID: &useWorkflow,
+})
+```
+```python Python
+exporter = connection.create_span_exporter(options={"useWorkflowRunId": False})
+```
+</CodeGroup>
 
-## 2. Filtering Spans
+This only disables `workflow.run_id`; explicit `threadify.thread_id` and
+`threadify.external_ref` still take precedence. Omit those too for trace-ID grouping.
 
-Use `filters` to drop internal or utility spans by name before export.
+## Mapping operations
 
-| Filter Pattern | Behavior | Example Match |
-| :--- | :--- | :--- |
-| `"invoke_llm"` | Exact match | `invoke_llm` |
-| `"adk.before*"` | Prefix wildcard (`*`) | `adk.before_tool_call`, `adk.before` |
-| `"llm.*"` | Prefix wildcard (`*`) | `llm.chat_completion`, `llm.` |
+| OpenTelemetry data | Threadify use |
+| --- | --- |
+| Correlated run or trace | Thread |
+| Span | Step; its span name is used unless overridden |
+| Span event | Sub-step |
+| `OK` status | Successful outcome |
+| `ERROR` status | Failed outcome |
+| `UNSET` status | Successful outcome when no error was recorded |
 
-<Note>
-Filters are applied on the span name only. Trailing `*` acts as a prefix wildcard. Empty filters are skipped.
-</Note>
+Outcome is not contract compliance. A successful span can still violate a rule.
 
-## 3. Using OpenTelemetry Natively
-
-Once configured, instrument business logic with the standard OpenTelemetry API.
-
-<Tabs>
-<Tab title="Node.js">
+| Attribute | Purpose |
+| --- | --- |
+| `threadify.contract` | Contract name, optionally with `:version` |
+| `threadify.step_name` | Stable contract step name when the span name varies |
+| `threadify.label` | Human-readable thread label |
+| `threadify.role` | Contract party for Engine OTLP ingestion |
+| `threadify.ref.customer_id` | Attach a business reference |
+| `threadify.context.amount` | Attach step content for a rule |
+| `threadify.invocation_id` | Correlate a span with an existing permission grant |
+| `threadify.run.complete` | Explicit completion signal for a correlated run |
 
 ```javascript
-// Get your standard OTel tracer
-const tracer = trace.getTracer('my-service-tracer');
-
-// Start a span (This automatically ensures a Thread exists in Threadify)
-const span = tracer.startSpan('process_payment');
-
-// Set explicit Threadify mapping overrides (Optional)
-// This tells Threadify to validate this thread against the 'payment_workflow' contract
-span.setAttribute('threadify.contract', 'payment_workflow');
-
-// Tag the thread for filtering and categorization
-span.setAttribute('threadify.tags', ['production', 'v2.1']);
-
-// Set attributes
-span.setAttribute('order.id', 'ORD-98765'); // Extracted as a Ref (based on setup)
-span.setAttribute('payment.amount', 42.50); // Extracted as standard Context
-
-// Add Span Events (These automatically become Threadify Sub-Steps!)
-span.addEvent('validated_credit_card', {
-  'card.type': 'visa',
-  'fraud.score': 0.05
-});
-
-// Simulate work...
-await processPayment();
-
-// End the span (This triggers the Exporter and pushes the Step to Threadify)
-span.end();
+span.setAttribute('workflow.run_id', 'refund-run-2026-001');
+span.setAttribute('threadify.contract', 'refund_review');
+span.setAttribute('threadify.step_name', 'refund');
+span.setAttribute('threadify.ref.customer_id', 'CUST-001');
+span.setAttribute('threadify.context.amount', 42);
 ```
 
-</Tab>
-<Tab title="Go">
+For a shared run, ending one root span does not necessarily finish the whole
+thread. Signal final completion with `threadify.run.complete: true`; contracted
+threads must also satisfy their completion rules. Preserve source trace/span IDs
+when investigating retries and late exports.
 
-```go
-import (
-    "context"
+## Observe or enforce
 
-    "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/attribute"
-    "go.opentelemetry.io/otel/trace"
-)
-
-// Get your standard OTel tracer
-tracer := otel.Tracer("my-service-tracer")
-
-// Start a span (This automatically ensures a Thread exists in Threadify)
-ctx, span := tracer.Start(context.Background(), "process_payment")
-
-// Set explicit Threadify mapping overrides (Optional)
-// This tells Threadify to validate this thread against the 'payment_workflow' contract
-span.SetAttributes(attribute.String("threadify.contract", "payment_workflow"))
-
-// Tag the thread for filtering and categorization
-span.SetAttributes(attribute.StringSlice("threadify.tags", []string{"production", "v2.1"}))
-
-// Set attributes
-span.SetAttributes(attribute.String("order.id", "ORD-98765"))       // Extracted as a Ref (based on setup)
-span.SetAttributes(attribute.Float64("payment.amount", 42.50))     // Extracted as standard Context
-
-// Add Span Events (These automatically become Threadify Sub-Steps!)
-span.AddEvent("validated_credit_card", trace.WithAttributes(
-    attribute.String("card.type", "visa"),
-    attribute.Float64("fraud.score", 0.05),
-))
-
-// Simulate work...
-processPayment(ctx)
-
-// End the span (This triggers the Exporter and pushes the Step to Threadify)
-span.End()
-```
-
-</Tab>
-<Tab title="Python">
-
-```python
-from opentelemetry import trace
-
-# Get your standard OTel tracer
-tracer = trace.get_tracer("my-service-tracer")
-
-# Start a span (This automatically ensures a Thread exists in Threadify)
-with tracer.start_as_current_span("process_payment") as span:
-    # Set explicit Threadify mapping overrides (Optional)
-    # This tells Threadify to validate this thread against the 'payment_workflow' contract
-    span.set_attribute("threadify.contract", "payment_workflow")
-
-    # Tag the thread for filtering and categorization
-    span.set_attribute("threadify.tags", ["production", "v2.1"])
-
-    # Set attributes
-    span.set_attribute("order.id", "ORD-98765")       # Extracted as a Ref (based on setup)
-    span.set_attribute("payment.amount", 42.50)     # Extracted as standard Context
-
-    # Add Span Events (These automatically become Threadify Sub-Steps!)
-    span.add_event("validated_credit_card", {
-        "card.type": "visa",
-        "fraud.score": 0.05,
-    })
-
-    # Simulate work...
-    process_payment()
-
-    # Span ends automatically (This triggers the Exporter)
-```
-
-</Tab>
-</Tabs>
-
-## 4. Advanced Attributes (Optional)
-
-Use `threadify.*` span attributes to override the default mapping.
-
-| Attribute | Description | Default Fallback |
-| :--- | :--- | :--- |
-| `threadify.contract` | The Contract Name to validate this workflow against. | `null` (Schema-less Thread) |
-| `threadify.step_name` | Override the Step name in Threadify. | Uses `span.name` |
-| `threadify.thread_id` | Force the Span to attach to a specific existing Thread ID. | Auto-generates a new Thread per Trace |
-| `threadify.label` | The human-readable label for the Thread. | Uses `span.name` |
-| `threadify.service` | Override the service name that executed this step. | Uses the connection's default service |
-| `threadify.tags` | Immutable labels attached to the thread at creation time (e.g., `production`, `v2.1`). | `null` |
-
-Any attributes starting with `threadify.ref.*` or `threadify.context.*` will be explicitly mapped to references or context respectively, bypassing the default configuration rules.
+Passive export records operations after they happen. To prevent an agent tool
+call or backend action, use [an SDK execution wait](/core-concepts/execution-waits)
+before running it, then let the span report its outcome with the invocation ID.
+Do not also report the same outcome through `thread.step()` unless it is a distinct event.

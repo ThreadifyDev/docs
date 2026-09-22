@@ -24,15 +24,19 @@
       "group": "Getting Started",
       "pages": [
         "introduction",
+        "self-hosting",
         "quickstart",
-        "opentelemetry",
         "authentication",
-        "cli"
+        "plans-and-limits",
+        "cli",
+        "troubleshooting"
       ]
     },
     {
       "group": "Core Concepts",
       "pages": [
+        "core-concepts/overview",
+        "core-concepts/threads",
         {
           "group": "Installation",
           "pages": [
@@ -42,10 +46,14 @@
           ]
         },
         "core-concepts/connecting",
+        "opentelemetry",
         "core-concepts/tracking-workflows",
         "core-concepts/sub-steps",
         "core-concepts/external-references",
+        "core-concepts/entity-profiles",
+        "core-concepts/creating-contracts",
         "core-concepts/working-with-contracts",
+        "core-concepts/execution-waits",
         "core-concepts/idempotency",
         "core-concepts/handling-failures",
         "core-concepts/ending-threads",
@@ -54,7 +62,8 @@
           "pages": [
             "core-concepts/data-retrieval/getting-threads",
             "core-concepts/data-retrieval/querying-steps",
-            "core-concepts/data-retrieval/validation-results"
+            "core-concepts/data-retrieval/validation-results",
+            "core-concepts/data-retrieval/thread-chains"
           ]
         },
         {
@@ -75,10 +84,8 @@
       ]
     },
     {
-      "group": "Things to Know",
+      "group": "Integrity and access",
       "pages": [
-        "things-to-know/overview",
-        "core-concepts/creating-contracts",
         "things-to-know/hash-chain",
         "things-to-know/access-levels"
       ]
@@ -105,5 +112,59 @@
   },
   "api": {
     "maintainOrder": true
-  }
+  },
+  "redirects": [
+    {
+      "source": "/core-concepts/access-levels",
+      "destination": "/things-to-know/access-levels"
+    },
+    {
+      "source": "/core-concepts/contracts",
+      "destination": "/core-concepts/creating-contracts"
+    },
+    {
+      "source": "/core-concepts/hash-chain",
+      "destination": "/things-to-know/hash-chain"
+    },
+    {
+      "source": "/core-concepts/installation",
+      "destination": "/quickstart"
+    },
+    {
+      "source": "/core-concepts/notifications",
+      "destination": "/core-concepts/notifications/subscribing"
+    },
+    {
+      "source": "/core-concepts/notifications/connecting",
+      "destination": "/core-concepts/connecting"
+    },
+    {
+      "source": "/core-concepts/references",
+      "destination": "/core-concepts/external-references"
+    },
+    {
+      "source": "/core-concepts/steps",
+      "destination": "/core-concepts/tracking-workflows"
+    },
+    {
+      "source": "/core-concepts/thread-collaboration/managing-access",
+      "destination": "/things-to-know/access-levels"
+    },
+    {
+      "source": "/things-to-know/contracts",
+      "destination": "/core-concepts/creating-contracts"
+    },
+    {
+      "source": "/things-to-know/steps",
+      "destination": "/core-concepts/tracking-workflows"
+    },
+    {
+      "source": "/things-to-know/notifications",
+      "destination": "/core-concepts/notifications/subscribing"
+    },
+    {
+      "source": "/things-to-know/overview",
+      "destination": "/core-concepts/overview"
+    }
+  ]
 }

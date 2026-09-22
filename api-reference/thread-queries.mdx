@@ -20,7 +20,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Search threads with filters
 query {
   threads(
@@ -36,7 +38,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Find by external reference (specific key)
 query {
   threadsByRef(
@@ -50,7 +54,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Find by value only (searches all ref keys)
 # Useful when you don't know the ref key name
 query {
@@ -64,7 +70,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Partial match search (case-insensitive)
 query {
   threadsByRef(
@@ -77,7 +85,9 @@ query {
     }
   }
 }
+```
 
+```graphql
 # Filter threads by tags
 query {
   threads(
@@ -153,14 +163,3 @@ query {
 | `completedAt` | String | Completion timestamp |
 | `error` | String | Error message (if failed) |
 | `tags` | [String!] | Immutable tags set at thread creation |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Step Queries" icon="list" href="/api-reference/step-queries">
-    Query step history and sub-steps
-  </Card>
-  <Card title="Validation Queries" icon="shield-check" href="/api-reference/validation-queries">
-    Query contract validation results
-  </Card>
-</CardGroup>

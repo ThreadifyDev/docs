@@ -3,28 +3,27 @@ title: 'GraphQL API Overview'
 description: 'Query thread execution data, validation results, and contract structures'
 ---
 
-Use the GraphQL API to query threads, validation results and contracts.
+Use the GraphQL API on your own Engine to query threads, validation results,
+contracts, and entity profiles. Queries read persisted history, which can lag
+behind live contract state. Use SDK execution waits for permission decisions.
 
 ## API Endpoint
 
 ```
-POST https://eng.threadify.dev/graphql
+POST https://threadify.example.com/graphql
 ```
 
 ## Authentication
 
-Include your API key in the Authorization header:
+Include your API key in the X-API-Key header:
 
 ```bash
-Authorization: Bearer YOUR_API_KEY
+X-API-Key: YOUR_API_KEY
 ```
 
 ## Query Complexity Limit
 
 - **Maximum complexity:** 1000 points
-- Each field costs 1 point
-- List items multiply by their count
-- Nested fields multiply by parent list size
 - Use pagination to stay within limits
 
 ## Example Query
@@ -47,8 +46,8 @@ query {
 ```
 
 ```bash cURL
-curl -X POST https://eng.threadify.dev/graphql \
-  -H "Authorization: Bearer YOUR_API_KEY" \
+curl -X POST https://threadify.example.com/graphql \
+  -H "X-API-Key: YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "query { thread(id: \"thread-123\") { id status contractName } }"
@@ -70,14 +69,3 @@ curl -X POST https://eng.threadify.dev/graphql \
 | `validationResults(...)` | Get contract validation results |
 | `contractGraph(name, version)` | Get contract structure |
 | `verifyThreadIntegrity(threadId)` | Verify hash chain integrity |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Thread Queries" icon="database" href="/api-reference/thread-queries">
-    Query thread execution data
-  </Card>
-  <Card title="Step Queries" icon="list" href="/api-reference/step-queries">
-    Query step history and validation
-  </Card>
-</CardGroup>

@@ -11,6 +11,7 @@ Control how many notifications can be pending at once:
 
 ```javascript JavaScript
 const threadify = await Threadify.connect('your-api-key', 'my-service', {
+  engineUrl: 'http://localhost:8081',
   maxInFlight: 50  // Default: 10, Max: 100
 });
 ```
@@ -18,6 +19,7 @@ const threadify = await Threadify.connect('your-api-key', 'my-service', {
 ```go Go
 conn, err := threadify.Connect(ctx, "your-api-key", 
     threadify.WithServiceName("my-service"),
+    threadify.WithEngineURL("http://localhost:8081"),
     threadify.WithMaxInFlight(50), // Default: 10, Max: 100
 )
 if err != nil {
@@ -31,13 +33,16 @@ from threadify import Threadify
 connection = await Threadify.connect(
     "your-api-key",
     service_name="my-service",
+    engine_url="http://localhost:8081",
     max_in_flight=50,  # Default: 10, Max: 100
 )
 ```
 
 </CodeGroup>
 
-Notifications are **HPA-safe** - each delivered to exactly one pod in your cluster.
+Notifications use explicit acknowledgements and can be redelivered. Make handlers
+idempotent, especially when they trigger external actions. Scaling consumers does
+not provide exactly-once execution of your application code.
 
 ### Event Patterns
 
@@ -143,14 +148,3 @@ connection.subscribe("rule.violated", "product_delivery@order_placed", on_contra
 | `message` | string | Human-readable message |
 | `timestamp` | string | ISO timestamp |
 | `ack()` | method | Acknowledge notification |
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Handling Notifications" icon="code" href="/core-concepts/notifications/handling">
-    Learn how to process and acknowledge notifications
-  </Card>
-  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
-    Understand contract validation
-  </Card>
-</CardGroup>

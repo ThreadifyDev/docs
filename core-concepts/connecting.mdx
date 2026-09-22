@@ -20,6 +20,7 @@ await threadify.close()
 ctx := context.Background()
 conn, err := threadify.Connect(ctx, "your-api-key", 
     threadify.WithServiceName("my-service"),
+    threadify.WithEngineURL("https://threadify.example.com"),
 )
 if err != nil {
     log.Fatal(err)
@@ -34,14 +35,16 @@ from threadify import Threadify
 connection = await Threadify.connect(
     "your-api-key",
     service_name="my-service",
+    engine_url="https://threadify.example.com",
 )
 ```
 
 </CodeGroup>
 
-### One Engine URL for JavaScript
+### One Engine URL
 
-Copy the address from **Settings → Engine** into `engineUrl`. The SDK handles
+Copy the address from **Settings → Engine** into JavaScript `engineUrl`, Go
+`WithEngineURL`, or Python `engine_url`. The SDK handles
 WebSocket and GraphQL routing internally; no separate paths are needed. A
 reverse-proxy prefix such as `https://example.com/threadify` is preserved.
 `Threadify.create({ apiKey, serviceName, engineUrl })` also accepts this option.
@@ -61,21 +64,10 @@ OpenTelemetry and MCP clients have their own collapsible setup sections in Setti
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `maxInFlight` | number | 10 | Max pending notifications (max: 100) |
-| `engineUrl` | string | Hosted Threadify Engine | JavaScript SDK base URL for both writes and queries |
+| `engineUrl` | string | Set explicitly | Your Engine base URL for both writes and queries |
 | `reconnect` | boolean | true | Auto-reconnect on disconnect |
 | `timeout` | number | 30000 | Connection timeout (ms) |
 
 <Warning>
 Never commit API keys to version control. Use environment variables or secret managers/vault.
 </Warning>
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Tracking Workflows" icon="chart-line" href="/core-concepts/tracking-workflows">
-    Start tracking your first workflow
-  </Card>
-  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
-    Learn how to handle step failures
-  </Card>
-</CardGroup>

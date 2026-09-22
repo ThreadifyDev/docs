@@ -15,7 +15,7 @@ const thread = await threadify.start('User-Onboarding-cust-123');
 ```
 
 ```go Go
-thread, err := conn.Start(ctx, "User-Onboarding-cust-123", "")
+thread, err := conn.Start(ctx, "User-Onboarding-cust-123")
 if err != nil {
     log.Fatal(err)
 }
@@ -76,29 +76,20 @@ await step.add_context({"orderId": order.id, "total": order.total}).success()
 | Method | Description |
 |--------|-------------|
 | `.success()` | Mark step as successful |
-| `.success(data)` | Success with additional data |
-| `.failed(data)` | Mark step as failed with error data |
+| `.success(message)` | Record success with a message or metadata |
+| `.failed(message)` | Record a failed outcome |
 | `.addContext(data)` | Add business context (analytics, debugging) |
 
 <Warning>
 Non-contract threads remain "active" indefinitely unless explicitly ended. [View Closing a Thread](/core-concepts/ending-threads)
 </Warning>
 
+An acknowledgement means the event was recorded, not that asynchronous contract
+validation has passed. Use `.success(message, { waitFor: true })` for the exact
+validation result, or call `thread.waitFor(stepName)` before the business operation.
+See [execution waits](/core-concepts/execution-waits).
+
 ### Idempotency
 
 Threadify stores only the first recording for an idempotency key. See
 [Idempotency](/core-concepts/idempotency) when retries need a custom key.
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Handling Failures" icon="triangle-exclamation" href="/core-concepts/handling-failures">
-    Learn how to handle and record failures
-  </Card>
-  <Card title="Closing Threads" icon="circle-check" href="/core-concepts/ending-threads">
-    Complete or cancel threads manually
-  </Card>
-  <Card title="External References" icon="link" href="/core-concepts/external-references">
-    Link to external systems like payment providers or Shopify
-  </Card>
-</CardGroup>

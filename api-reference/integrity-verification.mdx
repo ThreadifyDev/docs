@@ -17,7 +17,9 @@ query {
     error
   }
 }
+```
 
+```graphql
 # Verify specific step
 query {
   verifyStepIntegrity(
@@ -30,7 +32,9 @@ query {
     prevHash
   }
 }
+```
 
+```graphql
 # Get hash chain data
 query {
   thread(id: "thread-123") {
@@ -67,14 +71,3 @@ query {
 | `error` | String | Error message (if invalid) |
 
 For the integrity model and common uses, see [Hash Chain](/things-to-know/hash-chain).
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Step Queries" icon="list" href="/api-reference/step-queries">
-    Query step execution history
-  </Card>
-  <Card title="Thread Queries" icon="database" href="/api-reference/thread-queries">
-    Query thread data
-  </Card>
-</CardGroup>

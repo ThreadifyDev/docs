@@ -28,7 +28,7 @@ await thread.cancel('User cancelled order');
 ```
 
 ```go Go
-thread, _ := conn.Start(ctx, "Manual-Completion-Example", "") // No contract
+thread, _ := conn.Start(ctx, "Manual-Completion-Example") // No contract
 
 // Record some steps
 thread.Step("process_order").Success(ctx)
@@ -70,14 +70,3 @@ When a thread ends, Threadify emits events:
 
 - **`thread.completed`** - Triggered when `complete()` is called or a terminal step is reached
 - **`thread.cancelled`** - Triggered when `cancel()` is called
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Working with Contracts" icon="file-contract" href="/core-concepts/working-with-contracts">
-    Learn how contracts enforce terminal steps
-  </Card>
-  <Card title="Notifications" icon="bell" href="/core-concepts/notifications/subscribing">
-    Subscribe to thread completion events
-  </Card>
-</CardGroup>

@@ -1,0 +1,70 @@
+---
+title: Entity profiles
+description: Connect execution history and chosen metrics for a customer, agent, or partner.
+---
+
+An entity profile connects runs by `customer_id`, `agent_id`, or another business
+reference. Review their history and metrics without merging threads or contracts.
+
+## Define the entity
+
+Create a profile type in **Entity Profiles** and choose the reference key that
+identifies your entity. For example, an Agent profile type can use `agent_id`.
+Have your services attach that ref to relevant threads:
+
+```javascript
+await thread.addRefs({ agent_id: 'refund-assistant-01' });
+```
+
+For OTLP ingestion, set `threadify.ref.agent_id` on the span. Ordinary business
+refs associate history; they do not give every matching thread the same identity.
+See [references and correlation](/core-concepts/external-references).
+
+With the CLI, a basic profile-type file looks like:
+
+```yaml
+name: Agents
+type: [agent_id]
+description: Execution history for each agent
+```
+
+```sh
+threadify-cli profile-types create --file agents.yaml
+threadify-cli profiles create --type-id TYPE_ID --ref-value refund-assistant-01 --name 'Refund assistant'
+```
+
+Use the returned type ID. The CLI can create a named profile before activity
+arrives. Registry controls how many profiles the installation may have.
+
+## Choose the metrics
+
+Configure metrics on the profile type in the dashboard, such as failed refunds,
+approval violations, or execution duration. Metrics must be configured explicitly.
+
+Open a profile to review metrics, delivery health, and history. Select a thread
+for its steps and validation evidence. New activity may lag while it is archived.
+
+## Completion is not compliance
+
+A retried workflow can complete successfully despite earlier failures or rule
+violations. Compare these measures:
+
+- **Completion rate:** how often the workflow eventually completed.
+- **Failed steps and retries:** problems encountered along the way.
+- **Validation findings:** whether the recorded behavior obeyed its contract.
+- **Delivery health and trend:** an aggregate signal to investigate, not proof
+  that every rule passed.
+
+## Walkthrough
+
+The walkthrough shows metric configuration, profile metrics, delivery health,
+and navigation into execution evidence:
+
+<iframe
+  src="https://player.mux.com/qX87EoG4o8zpQULQJ3OPYJPGU2K2GATmFyCLzaLPPus"
+  title="Entity profile configuration and execution history walkthrough"
+  width="100%"
+  height="560"
+  allow="fullscreen; picture-in-picture"
+  allowFullScreen
+/>

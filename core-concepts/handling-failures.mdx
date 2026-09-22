@@ -59,15 +59,6 @@ except Exception as error:
 
 ### Retry Tracking
 
-Each retry attempt is automatically tracked in step history for debugging.
-
-### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="External References" icon="link" href="/core-concepts/external-references">
-    Link workflows to external systems
-  </Card>
-  <Card title="Sub-steps" icon="list-tree" href="/core-concepts/sub-steps">
-    Break down complex operations
-  </Card>
-</CardGroup>
+Record each distinct retry with its own invocation or idempotency key. Reusing
+a recording key deduplicates the report. Contracts with fresh prerequisites
+require a new approval for each invocation, including after a failed attempt.

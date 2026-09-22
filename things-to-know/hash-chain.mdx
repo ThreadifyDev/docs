@@ -1,77 +1,29 @@
 ---
-title: Hash Chain
-description: Cryptographically verified ordering and integrity for threads
+title: Hash chain
+description: Verify the integrity of the history Threadify recorded.
 ---
 
-Each step contains a hash of its contents and the previous step's hash. A changed
-or reordered step therefore breaks the thread's hash chain.
+Threadify links recorded activity using hashes and a versioned HMAC secret.
+Verification checks whether the stored chain is internally consistent and has
+been altered. Keep your configured hash-chain secrets across restarts and retain
+old versions after rotation so older history remains verifiable.
 
-### Hash Properties
+## Verify a thread
 
-- **Tamper-proof** - Any modification breaks the chain
-- **Ordered** - Ensures steps execute in correct sequence
-- **Verifiable** - Chain integrity can be checked
-
-Each step contains:
-- **hash** - Current step's cryptographic hash
-- **prevHash** - Previous step's hash (null for first step)
-
-### Chain Verification
-
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Verify hash chain integrity
-const archivedThread = await threadify.getThread('thread-uuid');
-const steps = await archivedThread.steps();
-
-for (const step of steps) {
-  if (step.verified) {
-    console.log(`${step.stepName}: Verified ✓`);
-  } else {
-    console.error(`${step.stepName}: Chain broken`);
-  }
-}
+```sh
+threadify-cli threads verify --id THREAD_ID
 ```
-</Tab>
-<Tab title="Go">
-```go
-// Verify hash chain integrity
-archivedThread, err := conn.GetThread(ctx, "thread-uuid")
-if err != nil {
-    log.Fatal(err)
-}
 
-steps, err := archivedThread.Steps(ctx)
-if err != nil {
-    log.Fatal(err)
-}
+The command prints integrity results and exits nonzero when verification fails.
+You can also use the [GraphQL integrity queries](/api-reference/integrity-verification)
+to inspect a whole thread or one recorded step.
 
-for _, step := range steps {
-    if step.Verified {
-        log.Printf("%s: Verified ✓", step.StepName)
-    } else {
-        log.Printf("%s: Chain broken", step.StepName)
-    }
-}
-```
-</Tab>
-<Tab title="Python">
-```python
-# Verify hash chain integrity
-archived_thread = await conn.get_thread("thread-uuid")
-steps = await archived_thread.steps()
+## What the result means
 
-for step in steps:
-    if step.verified:
-        print(f"{step.step_name}: Verified ✓")
-    else:
-        print(f"{step.step_name}: Chain broken")
-```
-</Tab>
-</Tabs>
+Integrity is different from correctness. An intact chain can contain a failed
+operation or a contract violation. It also cannot prove that an unrecorded
+external action never happened. Use contract validation for rule compliance and
+the chain for integrity of the evidence Threadify actually received.
 
-### Use Cases
-
-Verify the chain when auditing execution history, investigating tampering or
-providing evidence for compliance and dispute resolution.
+Archived views can lag behind recent events. Check persistence health and wait
+for outstanding archival work when investigating incomplete recent history.

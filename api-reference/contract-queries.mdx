@@ -26,7 +26,7 @@ query {
     transitions {
       from
       to
-      canRetry
+      maxRetries
     }
     parties
   }
@@ -71,7 +71,6 @@ query {
 |-------|------|-------------|
 | `from` | String! | Source step |
 | `to` | [String!]! | Allowed next steps |
-| `canRetry` | Boolean! | Retry allowed |
 | `maxRetries` | Int! | Max retry attempts |
 
 ## Validation Fields
@@ -81,14 +80,3 @@ query {
 | `maxDuration` | String | Max thread duration |
 | `allowMultipleTerminals` | Boolean! | Allow multiple terminal steps |
 | `multipleTerminalsSeverity` | String | Severity if multiple terminals |
-
-## Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Thread Queries" icon="database" href="/api-reference/thread-queries">
-    Query thread execution data
-  </Card>
-  <Card title="Validation Queries" icon="shield-check" href="/api-reference/validation-queries">
-    Query validation results
-  </Card>
-</CardGroup>

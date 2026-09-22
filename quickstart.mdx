@@ -1,25 +1,12 @@
 ---
 title: Quick Start
-description: Get Threadify running in 5 minutes
+description: Run your Engine, connect an SDK, and record a workflow.
 ---
 
-## Install your Engine
+## Before you start
 
-[Create your Threadify account](https://threadify.dev/signup) to get a license
-key, then install the Engine:
-
-```bash
-curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
-  https://github.com/ThreadifyDev/engine/releases/latest/download/install.sh \
-  --output install.sh
-sh install.sh
-```
-
-Edit the installed `config.yaml` with your license key, PostgreSQL connection
-and hash-chain secret, then run the start command printed by the installer.
-Open `http://localhost:8081` to sign in to your dashboard. See the
-[self-hosting guide](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/SELF_HOSTING.md)
-for the full setup and [authentication](/authentication) for browser sign-in.
+[Run your Engine](/self-hosting), sign in, and create an API key under
+**Developer → API Keys**. Use your Engine's address in the examples below.
 
 ## 1. Install the SDK
 
@@ -42,10 +29,6 @@ pip install threadify-sdk
 </Tabs>
 
 ## 2. Connect to Threadify
-
-<Note>
-  Need an API key? [Sign in to your Engine](/authentication), then open **Developer → API Keys** to create one.
-</Note>
 
 <Tabs>
 <Tab title="JavaScript">
@@ -93,8 +76,6 @@ connection = await Threadify.connect(
 // Start tracking a workflow with a label
 const thread = await connection.start('Order-123');
 
-// Or start with a contract and a label
-const thread = await connection.start('Order-789', 'order_fulfillment');
 ```
 </Tab>
 <Tab title="Go">
@@ -105,11 +86,6 @@ if err != nil {
     log.Fatal(err)
 }
 
-// Or start with a contract and a label
-thread, err = conn.Start(ctx, "Order-789", threadify.WithContract("order_fulfillment"))
-if err != nil {
-    log.Fatal(err)
-}
 ```
 </Tab>
 <Tab title="Python">
@@ -117,8 +93,6 @@ if err != nil {
 # Start tracking a workflow with a label
 thread = await connection.start("Order-123")
 
-# Or start with a contract and a label
-thread = await connection.start("Order-789", contract_name="order_fulfillment")
 ```
 </Tab>
 </Tabs>
@@ -172,10 +146,29 @@ await (
 </Tab>
 </Tabs>
 
-## What's Next?
+## 5. Finish and inspect
 
-- [Capture failures](/core-concepts/handling-failures)
-- [Create a contract](/core-concepts/creating-contracts)
-- [Subscribe to events](/core-concepts/notifications/subscribing)
-- [Query the GraphQL API](/api-reference/overview)
-- [Manage Threadify from the CLI](/cli)
+This example created a free-form thread. Finish it explicitly:
+
+<CodeGroup>
+```javascript JavaScript
+await thread.complete('Finished');
+await connection.close();
+```
+```go Go
+_, err = thread.Complete(ctx, "Finished")
+if err != nil { log.Fatal(err) }
+```
+```python Python
+await thread.complete("Finished")
+await connection.close()
+```
+</CodeGroup>
+
+Open **Threads** in your Engine dashboard. Archived views can take a short time
+to catch up with accepted events. Next, add a contract and an explicit wait when
+your code must check permission before acting.
+
+Next: [create a contract](/core-concepts/creating-contracts),
+[check before acting](/core-concepts/execution-waits), or
+[troubleshoot ingestion](/troubleshooting).

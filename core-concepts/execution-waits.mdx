@@ -1,0 +1,102 @@
+---
+title: Check before execution
+description: Use SDK waits to enforce a contract around a backend operation or agent tool call.
+---
+
+Reports validate asynchronously by default. Use a wait when a backend operation
+or agent tool must pass a check before continuing.
+
+## Before the action
+
+```javascript
+const grant = await thread.waitFor('refund', { timeout: 10000 });
+// Execute only after permission resolves successfully.
+const receipt = await issueRefund();
+await thread.step('refund').addContext(receipt).success();
+```
+
+`waitFor` checks role, prerequisites, thread state, and transitions, then atomically
+claims an invocation. **Do not execute if it rejects or times out.**
+
+The next report for that step on the same thread instance carries the invocation
+ID automatically. Permission does not imply success or validate future content.
+
+## After reporting the outcome
+
+```javascript
+const result = await thread.step('refund')
+  .addContext({ reference: 'RF-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678' })
+  .success('Refund recorded', { waitFor: true, timeout: 10000 });
+console.log(result.stepId, result.validation.decision);
+```
+
+Also supported: `.failed('Reason', { waitFor: true })`. The response waits for
+that event's worker validation without polling. It cannot undo an action.
+
+If a report was accepted but the validation wait timed out, the error carries
+`stepId`. Resume the wait without recording a duplicate:
+
+```javascript
+await thread.waitForValidation('refund', error.stepId, { timeout: 30000 });
+```
+
+## Fresh approval for every attempt
+
+Use this complete repeatable workflow when each refund attempt needs its own approval:
+
+```gherkin
+Feature: repeatable_refund
+Version: 1
+
+Rule: Approve an attempt
+  When step "approval" is submitted
+  Then owner must be "processor"
+  And this step is an entry point
+
+Rule: Refund
+  When step "refund" is submitted
+  Then owner must be "processor"
+  And step "approval" must succeed before each invocation
+
+Rule: Finish
+  When step "finished" is submitted
+  Then owner must be "processor"
+  And step "refund" must have succeeded
+  And this step is terminal
+```
+
+A grant consumes that approval, including when execution fails or the grant is
+abandoned. Concurrent callers cannot use the same approval for two invocations.
+A repeatable action must not be terminal; finish with a separate step.
+
+## Recovery
+
+Cancel a grant you will not use with `await grant.cancel()`. Cancellation does
+not restore its consumed approval. If a permission response is lost, recover
+using its `invocationId` rather than claiming another invocation:
+
+```javascript
+const grant = await thread.waitFor('refund', { invocationId: savedInvocationId });
+```
+
+Persist an invocation ID before requesting permission when crash recovery matters.
+Outstanding claims do not expire automatically. Preserve live Valkey state;
+Threadify does not use a potentially stale PostgreSQL archive to grant permission.
+Use your operation's own idempotency mechanism for external side effects.
+
+## Go and Python
+
+Go uses `thread.WaitFor(ctx, name, &threadify.WaitOptions{Timeout: 10 * time.Second})`
+and `threadify.ReportOptions{WaitFor: true}`. Python uses
+`await thread.wait_for(name, WaitOptions(timeout=10))` and `success(wait_for=True)`.
+JavaScript timeouts are milliseconds; Go uses durations and Python uses seconds.
+See the [Go](/core-concepts/installation/go) and [Python](/core-concepts/installation/python) examples.
+
+## Existing OpenTelemetry instrumentation
+
+After obtaining permission, set `threadify.thread_id`, `threadify.step_name`, and
+`threadify.invocation_id` on the individual operation span. Its exporter can report
+the outcome instead of duplicating it with an SDK step report. Use the same
+identity that obtained the grant. Passive OTLP export alone cannot gate execution.
+
+[Protocol details and failure behavior](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/docs/WAIT_FOR.md)

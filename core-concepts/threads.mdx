@@ -1,137 +1,42 @@
 ---
-title: Threads
-description: Complete business process executions in Threadify
+title: Threads and steps
+description: Model one execution without forcing the entire business process into one contract.
 ---
 
-A **thread** is a live execution graph that generates auditable logs alongside it. It's a live system of records that creates websocket events when things happen, either as a result of state changes or contract violations.
+A thread records one execution, optionally governed by a contract version.
+It can cross services. Keep its scope focused, such as refund approval;
+references and entity profiles connect it to other runs.
 
-### Key Properties
+- **Steps** record individual operations and their outcomes.
+- **Sub-steps** capture details within an operation.
+- **References** associate work with orders, customers, agents, or partners.
+- **Tags** categorize the thread at creation.
+- **Contracts** define the rules for its execution.
 
-- **Unique ID** for tracking and querying
-- **Contract Governance** - Optional but tells Threadify what contract to use as actions are recorded into the graph
-- **External references** (order IDs, customer IDs, etc.)
-- **Complete execution history** with all steps and context
-- **Cryptographic hash chain** for integrity verification
-- **Tags** - Immutable labels for filtering and categorization (e.g., `production`, `v2.1`)
+## Create and complete
 
-### Contract Governance
-
-Threads can operate in two modes:
-
-**1. Contract-Based Threads** (Recommended for critical workflows)
-- Enforced by YAML contracts with validation rules
-- Validates step transitions, required fields, and business rules
-- Prevents race conditions and ensures compliance
-- Identifies violations and sends WebSocket events for reactive handling
-
-**2. Free-Form Threads** (For simple or exploratory workflows)
-- No contract validation
-- Full flexibility in step naming and sequence
-- Useful for prototyping or non-critical processes
-
-### Thread Content
-
-Threads contain:
-- **Steps** - Individual operations and their outcomes
-- **Context data** - Payloads, metadata, and business information
-- **Actors** - Services, users, or systems that perform actions
-- **Timestamps** - When each action occurred
-- **References** - Links to external system identifiers
-- **Tags** - Immutable labels set at creation for filtering and grouping
-
-### Tags
-
-Tags are immutable string labels attached to a thread when it is created. They are useful for categorization, filtering, and organizing threads across your organization. Because tags are set at creation time and cannot be changed, they provide a reliable way to group threads by environment, version, region, or any other static dimension.
-
-<Tabs>
-<Tab title="Node.js">
+[Connect an SDK](/core-concepts/connecting), then:
 
 ```javascript
-// Tags are immutable — set them at creation only
-const thread = await threadify.start('...', '...', {
-  tags: ['production', 'v2.1']
-});
+const thread = await connection.start('Order ORD-123');
+await thread.addRefs({ order_id: 'ORD-123', customer_id: 'CUST-001' });
+await thread.step('order_received').addContext({ quantity: 2 }).success();
+await thread.complete('Recorded');
 ```
 
-</Tab>
-<Tab title="Go">
+Free-form threads require explicit completion or cancellation. Contracted threads
+complete when their terminal step successfully validates. A successful report
+acknowledgement alone is not a completed validation result.
 
-```go
-// Tags are immutable — set them at creation only
-thread, err := conn.Start(ctx, "...", "...",
-    threadify.WithTags("production", "v2.1"),
-)
-```
+## Correlate traces
 
-</Tab>
-<Tab title="Python">
+OTLP ingestion can use `threadify.external_ref` or `workflow.run_id` to combine
+traces from the same run into one thread. Ordinary business refs do not merge
+threads. See [OpenTelemetry](/opentelemetry) for precedence and opting out.
 
-```python
-# Tags are immutable — set them at creation only
-thread = await connection.start("...", tags=["production", "v2.1"])
-```
+## Shared rules
 
-</Tab>
-</Tabs>
-
-<Note>
-Tags can also be set via the OpenTelemetry Exporter using the `threadify.tags` span attribute. See the [OpenTelemetry Integration](/opentelemetry) page for details.
-</Note>
-
-### Thread-to-Thread Relationships
-
-Threads can reference other threads to create complex execution graphs:
-- **Parent threads** - Link to child threads for sub-processes
-- **Child threads** - Reference parent threads for context
-- **Related threads** - Connect parallel or dependent processes
-- **Follow-up threads** - Link to original threads for continuations
-
-### Contributors & Actors
-
-Threads are built by various contributors:
-- **Services** - Systems that record steps (web, backend, AI services)
-
-### Use Cases
-
-- **Order Fulfillment** - Track from order placement to delivery
-- **Loan Applications** - Monitor from submission to approval/rejection
-- **Insurance Claims** - Follow from claim filing to settlement
-- **Customer Onboarding** - Track from signup to activation
-
-### Example
-
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// With contract and label
-const thread = await threadify.start('Order-789', 'order_fulfillment');
-
-// Without contract (free-form) with label
-const freeThread = await threadify.start('Prototyping-Workflow');
-```
-</Tab>
-<Tab title="Go">
-```go
-// With contract and label
-thread, err := conn.Start(ctx, "Order-789", "order_fulfillment")
-if err != nil {
-    log.Fatal(err)
-}
-
-// Without contract (free-form) with label
-freeThread, err := conn.Start(ctx, "Prototyping-Workflow", "")
-if err != nil {
-    log.Fatal(err)
-}
-```
-</Tab>
-<Tab title="Python">
-```python
-# With contract and label
-thread = await connection.start("Order-789", contract_name="order_fulfillment")
-
-# Without contract (free-form) with label
-free_thread = await connection.start("Prototyping-Workflow")
-```
-</Tab>
-</Tabs>
+Contracts validate submitted content and execution history. Use an explicit
+[execution wait](/core-concepts/execution-waits) before an operation to enforce
+flow permission. Even with a grant, your application owns execution, recovery,
+and idempotency of external side effects.
