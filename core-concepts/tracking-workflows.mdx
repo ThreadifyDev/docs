@@ -3,26 +3,29 @@ title: 'Capturing Workflows'
 description: 'Capture business workflows as threads (execution graphs)'
 ---
 
-### Starting a Thread
+### Creating or Resuming a Thread
 
 A thread is one workflow execution, such as an order, support ticket or customer
 onboarding. Its steps form an execution graph across every participating service.
+Use the application's durable process key to recover the same thread in later
+requests. A new key creates a thread; a closed key rejects further writes.
+See [resume across requests](/core-concepts/threads#resume-across-requests).
 
 <CodeGroup>
 
 ```javascript JavaScript
-const thread = await threadify.start('User-Onboarding-cust-123');
+const thread = await threadify.thread('User-Onboarding-cust-123', { label: 'User-Onboarding-cust-123' });
 ```
 
 ```go Go
-thread, err := conn.Start(ctx, "User-Onboarding-cust-123")
+thread, err := conn.Thread(ctx, "User-Onboarding-cust-123", threadify.ThreadOptions{Label: "User-Onboarding-cust-123"})
 if err != nil {
     log.Fatal(err)
 }
 ```
 
 ```python Python
-thread = await connection.start("User-Onboarding-cust-123")
+thread = await connection.thread("User-Onboarding-cust-123", {"label": "User-Onboarding-cust-123"})
 ```
 
 </CodeGroup>

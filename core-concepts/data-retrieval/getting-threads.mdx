@@ -71,7 +71,7 @@ const first = await threadify.getThreadByRef({ order_id: 'ORD-1001' });
 `getThreadByRef()` returns the first match or `null`. A ref is not a unique
 thread identifier: several threads can have the same ref. Starting a new thread
 with an ordinary business ref still creates a separate thread. Reserved run
-correlation via `threadify.external_ref` is different; see [OpenTelemetry](/opentelemetry).
+correlation via `threadify.thread_key` is different; see [OpenTelemetry](/opentelemetry).
 
 These methods read persisted data, so newly recorded activity may take a few
 seconds to appear. Returned threads are read-only. To contribute to an active

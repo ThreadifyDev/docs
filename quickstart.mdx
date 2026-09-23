@@ -68,20 +68,20 @@ connection = await Threadify.connect(
 </Tab>
 </Tabs>
 
-## 3. Create Your First Thread
+## 3. Create or Resume Your Thread
 
 <Tabs>
 <Tab title="JavaScript">
 ```javascript
-// Start tracking a workflow with a label
-const thread = await connection.start('Order-123');
+// Use an application order ID as the key, with a human-readable label
+const thread = await connection.thread('order:ORD-123', { label: 'Order ORD-123' });
 
 ```
 </Tab>
 <Tab title="Go">
 ```go
-// Start tracking a workflow with a label
-thread, err := conn.Start(ctx, "Order-123")
+// Use an application order ID as the key, with a human-readable label
+thread, err := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{Label: "Order ORD-123"})
 if err != nil {
     log.Fatal(err)
 }
@@ -90,12 +90,18 @@ if err != nil {
 </Tab>
 <Tab title="Python">
 ```python
-# Start tracking a workflow with a label
-thread = await connection.start("Order-123")
+# Use an application order ID as the key, with a human-readable label
+thread = await connection.thread("order:ORD-123", {"label": "Order ORD-123"})
 
 ```
 </Tab>
 </Tabs>
+
+Reuse this key in later requests to recover the same active thread; the optional
+object is only needed to provide creation defaults. Threadify manages its internal
+ID. A closed thread cannot accept more steps, so choose a fresh key for each new
+order. See [threads and steps](/core-concepts/threads) for contracted sessions and
+examples in all three SDKs.
 
 ## 4. Add Steps to Your Process
 

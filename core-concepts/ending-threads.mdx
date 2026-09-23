@@ -4,7 +4,9 @@ description: 'Complete or cancel threads manually for non-contract workflows'
 ---
 
 Contract threads close automatically at a terminal step. Close non-contract
-threads explicitly as completed or cancelled.
+threads explicitly as completed or cancelled. Once closed, a thread cannot
+resume or accept additional steps. Its key remains bound to that thread; use a
+new key for a new execution.
 
 <Warning>
 Manual completion is rejected for contract-based threads unless a terminal step has been reached.
@@ -15,7 +17,7 @@ Manual completion is rejected for contract-based threads unless a terminal step 
 <CodeGroup>
 
 ```javascript JavaScript
-const thread = await threadify.start('Manual-Completion-Example'); // No contract
+const thread = await threadify.thread('order:ORD-123', { label: 'Order ORD-123' }); // No contract
 
 // Record some steps
 await thread.step('process_order').success();
@@ -28,7 +30,7 @@ await thread.cancel('User cancelled order');
 ```
 
 ```go Go
-thread, _ := conn.Start(ctx, "Manual-Completion-Example") // No contract
+thread, _ := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{Label: "Order ORD-123"}) // No contract
 
 // Record some steps
 thread.Step("process_order").Success(ctx)
@@ -41,7 +43,7 @@ thread.Cancel(ctx, "User cancelled order")
 ```
 
 ```python Python
-thread = await connection.start("Manual-Completion-Example")  # No contract
+thread = await connection.thread("order:ORD-123", {"label": "Order ORD-123"})  # No contract
 
 # Record some steps
 await thread.step("process_order").success()

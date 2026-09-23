@@ -123,8 +123,10 @@ same type and ref updates the name. Configure metrics under **Entity Profiles**.
 ## Threads and references
 
 ```sh
-threadify-cli threads start --label 'Order ORD-1001' --contract checkout --role worker \
+threadify-cli threads resolve --thread-key order:ORD-1001 --label 'Order ORD-1001' --contract checkout --role worker \
   --refs '{"order_id":"ORD-1001","customer_id":"CUST-001"}' --tags '["checkout"]'
+# Later requests resume the pinned contract using only the application key.
+threadify-cli threads resolve --thread-key order:ORD-1001
 threadify-cli threads get --id THREAD_ID
 threadify-cli threads list --status active --limit 25 --offset 0
 threadify-cli threads find --ref-key order_id --ref-value ORD-1001

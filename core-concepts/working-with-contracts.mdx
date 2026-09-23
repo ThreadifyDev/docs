@@ -9,9 +9,7 @@ contract's `processor` role.
 
 <CodeGroup>
 ```javascript JavaScript
-const thread = await connection.start('Refund RF-123', 'refund_review', {
-  serviceName: 'processor'
-});
+const thread = await connection.thread('refund:RF-123', { label: 'Refund RF-123', contract: 'refund_review', serviceName: 'processor' });
 await thread.step('approval').addContext({ reference: 'RF-123' })
   .success('Approved', { waitFor: true });
 await thread.step('refund').addContext({
@@ -19,10 +17,7 @@ await thread.step('refund').addContext({
 }).success('Refund recorded', { waitFor: true });
 ```
 ```go Go
-thread, err := conn.Start(ctx, "Refund RF-123",
-    threadify.WithContract("refund_review"),
-    threadify.WithRole("processor"),
-)
+thread, err := conn.Thread(ctx, "refund:RF-123", threadify.ThreadOptions{Label: "Refund RF-123", Contract: "refund_review", Role: "processor"})
 if err != nil { return err }
 _, err = thread.Step("approval").AddContext(map[string]any{"reference": "RF-123"}).
     Success(ctx, "Approved", threadify.ReportOptions{WaitFor: true})
@@ -33,7 +28,7 @@ _, err = thread.Step("refund").AddContext(map[string]any{
 if err != nil { return err }
 ```
 ```python Python
-thread = await connection.start("Refund RF-123", contract_name="refund_review", role="processor")
+thread = await connection.thread("refund:RF-123", {"contract": "refund_review", "role": "processor", "label": "Refund RF-123"})
 await thread.step("approval").add_context({"reference": "RF-123"}).success(
     "Approved", wait_for=True,
 )
@@ -51,7 +46,10 @@ and execute only after it succeeds.
 
 Pass `refund_review:2` to choose a specific version. Omitting the version selects
 the latest when the thread is created; publishing a later version does not
-rewrite an existing thread's contract.
+rewrite an existing thread's contract. Later requests use only the same thread
+key to resume; omit `contract` to load the stored binding and pinned version.
+Supplying a different contract or version is rejected. See the
+[cross-language resume examples](/core-concepts/threads#resume-across-requests).
 
 ## Interpret results
 

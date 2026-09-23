@@ -62,8 +62,9 @@ await (
 ### Querying by Reference
 
 Ordinary business refs can match multiple threads; they do not enforce uniqueness
-or merge threads. The reserved `threadify.external_ref` has different semantics
-for explicit run correlation.
+or merge threads. Use the SDK's `thread(threadKey, options?)` entry point to
+create or resume one thread with a unique application key. OpenTelemetry uses
+`threadify.thread_key` for that same identity.
 JavaScript lookups accept exactly one ref pair, with filters in an optional second
 argument. See [Getting Threads](/core-concepts/data-retrieval/getting-threads) for
 pagination, return values, and examples.
@@ -110,10 +111,12 @@ threads = await conn.get_threads_by_ref(
 
 ## Run correlation is different
 
-`threadify.external_ref` identifies one logical run. OTLP ingestion uses it ahead
+`threadify.thread_key` identifies one logical run. OTLP ingestion uses it ahead
 of `workflow.run_id`, then falls back to a trace ID. Several traces with the same
-run reference can contribute to one thread. Use a unique value for each run;
-a customer ID belongs in a business ref instead.
+thread key can contribute to one thread. Use a unique value for each intended
+run; put a customer ID in business refs when a customer has multiple runs.
+The SDK's [create or resume API](/core-concepts/threads) accepts the same key,
+so instrumentation does not need to store the internal `threadId`.
 
 This is separate from the Engine's internal thread UUID and from ordinary refs
 such as `customer_id`. Correlation conflicts are rejected; existing threads are

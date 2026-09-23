@@ -149,12 +149,18 @@ attributes, events, and status messages; preserve fields needed by contracts.
 The correlation precedence is:
 
 1. `threadify.thread_id`: an existing internal Threadify thread ID.
-2. `threadify.external_ref`: your explicit reference for this logical run.
-3. `workflow.run_id`: used by default when no explicit reference is supplied.
+2. `threadify.thread_key`: your application-owned session or process key.
+3. `workflow.run_id`: used by default when no explicit key is supplied.
 4. OpenTelemetry trace ID: the fallback when none of the above applies.
 
-A shared run reference combines traces into one thread. Use a unique value per
-run, consistently set on its spans or dedicated resource. References must be
+The key uses the same Engine resolver as `connection.thread(threadKey, options?)`.
+The stored contract and pinned version are loaded on resume, so subsequent spans
+can omit `threadify.contract`. A different supplied contract is rejected.
+Initialize contracted sessions before reporting spans; a new key without a
+contract creates a free-form thread.
+
+A shared thread key combines traces into one thread. Use a unique value per
+run, consistently set on its spans or dedicated resource. Thread keys must be
 nonblank strings of at most 1024 UTF-8 bytes after trimming.
 
 Existing threads are not merged retroactively. Conflicting identities or
@@ -186,7 +192,7 @@ exporter = connection.create_span_exporter(options={"useWorkflowRunId": False})
 </CodeGroup>
 
 This only disables `workflow.run_id`; explicit `threadify.thread_id` and
-`threadify.external_ref` still take precedence. Omit those too for trace-ID grouping.
+`threadify.thread_key` still take precedence. Omit those too for trace-ID grouping.
 
 ## Mapping operations
 
@@ -203,6 +209,7 @@ Outcome is not contract compliance. A successful span can still violate a rule.
 
 | Attribute | Purpose |
 | --- | --- |
+| `threadify.thread_key` | Application session/process identity, shared with the JavaScript, Python, and Go SDKs |
 | `threadify.contract` | Contract name, optionally with `:version` |
 | `threadify.step_name` | Stable contract step name when the span name varies |
 | `threadify.label` | Human-readable thread label |
@@ -213,7 +220,7 @@ Outcome is not contract compliance. A successful span can still violate a rule.
 | `threadify.run.complete` | Explicit completion signal for a correlated run |
 
 ```javascript
-span.setAttribute('workflow.run_id', 'refund-run-2026-001');
+span.setAttribute('threadify.thread_key', 'refund-run-2026-001');
 span.setAttribute('threadify.contract', 'refund_review');
 span.setAttribute('threadify.step_name', 'refund');
 span.setAttribute('threadify.ref.customer_id', 'CUST-001');
@@ -222,8 +229,10 @@ span.setAttribute('threadify.context.amount', 42);
 
 For a shared run, ending one root span does not necessarily finish the whole
 thread. Signal final completion with `threadify.run.complete: true`; contracted
-threads must also satisfy their completion rules. Preserve source trace/span IDs
-when investigating retries and late exports.
+threads complete through their contract rules. Completion waits for all accepted
+spans in the current export. Terminal threads reject further writes, including
+delayed spans; keep the thread open until all session work has arrived. Preserve
+source trace/span IDs when investigating retries.
 
 ## Observe or enforce
 

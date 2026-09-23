@@ -18,8 +18,10 @@ references and entity profiles connect it to other runs.
 [Connect an SDK](/core-concepts/connecting), then:
 
 ```javascript
-const thread = await connection.start('Order ORD-123');
-await thread.addRefs({ order_id: 'ORD-123', customer_id: 'CUST-001' });
+const thread = await connection.thread('order:ORD-123', {
+  label: 'Order ORD-123',
+  refs: { order_id: 'ORD-123', customer_id: 'CUST-001' },
+});
 await thread.step('order_received').addContext({ quantity: 2 }).success();
 await thread.complete('Recorded');
 ```
@@ -28,9 +30,75 @@ Free-form threads require explicit completion or cancellation. Contracted thread
 complete when their terminal step successfully validates. A successful report
 acknowledgement alone is not a completed validation result.
 
+## Resume across requests
+
+<CodeGroup>
+
+```javascript JavaScript
+// Initialize a contracted session before its turns or telemetry begin.
+await connection.thread(sessionId, {
+  label: 'Agent session', contract: 'agent_contract:3', refs: { customerId },
+});
+
+// In any later request or worker, reuse the application's session ID.
+const thread = await connection.thread(sessionId);
+await thread.step('tool_call').idempotencyKey(toolCallId).success();
+```
+
+```python Python
+# Initialize before turns or telemetry begin.
+await connection.thread(session_id, {
+    "label": "Agent session",
+    "contract": "agent_contract:3",
+    "refs": {"customerId": customer_id},
+})
+
+# In any later request or worker, the contract is already stored.
+thread = await connection.thread(session_id)
+await thread.step("tool_call").idempotency_key(tool_call_id).success()
+```
+
+```go Go
+// Initialize before turns or telemetry begin.
+_, err := conn.Thread(ctx, sessionID, threadify.ThreadOptions{
+    Label:    "Agent session",
+    Contract: "agent_contract:3",
+    Refs:     map[string]string{"customerId": customerID},
+})
+if err != nil { return err }
+
+// In any later request or worker, the contract is already stored.
+thread, err := conn.Thread(ctx, sessionID)
+if err != nil { return err }
+_, err = thread.Step("tool_call").IdempotencyKey(toolCallID).Success(ctx)
+if err != nil { return err }
+```
+
+</CodeGroup>
+
+`threadKey` uniquely identifies a thread within your company. Threadify generates
+and retains the internal `threadId`. Concurrent calls create or resume one thread
+and still require normal write permissions. Keys are trimmed, nonblank strings
+of at most 1024 UTF-8 bytes.
+
+`connection.thread(threadKey, { refs, label, contract, tags, serviceName, role })` accepts
+optional creation defaults. Python uses the same optional dictionary, with
+`service_name` and optional `role`. Go accepts an optional `threadify.ThreadOptions`
+value with `Refs`, `Label`, `Contract`, `Tags`, `ServiceName`, and `Role` fields.
+Reference values must be strings. On resume it returns the stored contract and pinned
+version; you do not supply the contract again. An explicitly different contract
+is rejected. Existing labels, refs, and tags are preserved; use `addRefs()` for
+explicit reference updates.
+
+A key-only call creates a free-form thread if the key is new. Initialize contracted
+sessions first, since adding a contract to an existing free-form thread is rejected.
+Closed threads (including completed, cancelled, or failed threads) cannot resume or accept writes. Use a new key for
+a new execution. Legacy `start()` creates unkeyed threads; `join()` accepts IDs or
+invitations.
+
 ## Correlate traces
 
-OTLP ingestion can use `threadify.external_ref` or `workflow.run_id` to combine
+OTLP ingestion can use `threadify.thread_key` or `workflow.run_id` to combine
 traces from the same run into one thread. Ordinary business refs do not merge
 threads. See [OpenTelemetry](/opentelemetry) for precedence and opting out.
 

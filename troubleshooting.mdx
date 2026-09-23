@@ -31,7 +31,7 @@ assuming telemetry is absent.
 ## Too many tiny threads
 
 Inspect the trace IDs and run attributes. Set a consistent `workflow.run_id` or
-`threadify.external_ref` for spans belonging to the same logical run. Use a new
+`threadify.thread_key` for spans belonging to the same logical run. Use a new
 value for each run, and keep its contract consistent. This does not merge old
 stored threads. [Correlation rules](/opentelemetry).
 
