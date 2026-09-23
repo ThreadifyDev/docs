@@ -25,6 +25,7 @@
       "pages": [
         "introduction",
         "self-hosting",
+        "personal-ai-gateway",
         "quickstart",
         "authentication",
         "plans-and-limits",

@@ -111,6 +111,24 @@ To replace the bundled config, mount your file at `/app/config/config.yaml`.
 The image runs as UID/GID 65532, so bind-mounted data directories must be writable
 by that user.
 
+## Optional AI agent
+
+Every Engine includes the agent artifact. Local execution is opt-in:
+
+```sh
+threadify serve --config ./config.yaml --with-agent
+```
+
+For Docker, append `serve --with-agent` after the image name. The first start
+installs the matching runtime into `/data/agent`; the existing `/data` volume
+preserves it across container replacements. Downloads and process memory are
+needed only for local execution.
+
+Without the flag or `ai.agent.url`, AI features are hidden. Each Engine started
+with `--with-agent` owns an agent with temporary, in-memory sessions.
+See [Personal AI gateway](/personal-ai-gateway) for model settings, session routing,
+and offline runtime installation.
+
 ## Public address and browser login
 
 Open `http://localhost:8081` locally. For deployment, forward your HTTPS hostname
