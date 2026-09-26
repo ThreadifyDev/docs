@@ -15,6 +15,19 @@ Feature: refund_review
 Version: 1
 Description: Approve and record a valid refund.
 
+Step: "approval"
+  Description: "The processor approved the refund request."
+  Required context: "reference" means "Original payment reference."
+
+Step: "refund"
+  Description: "The processor recorded the completed refund."
+  Required context: "reference" means "Original payment reference."
+  Required context: "amount" means "Amount refunded."
+  Required context: "currency" means "Currency of the refund."
+  Required context: "receipt" means "Refund receipt identifier."
+  Optional context: "note" means "Additional refund explanation."
+  Optional context: "processor_reference" means "Processor reference when available."
+
 Rule: Approve the request
   When step "approval" is submitted
   Then owner must be "processor"
@@ -32,8 +45,36 @@ Rule: Record the refund
   And this step is terminal
 ```
 
-`Feature` names the contract; each `Rule` defines one step. All its clauses must
-hold. Only the supported vocabulary is accepted—this is not a Cucumber runner.
+`Feature` names the contract. A `Step` block describes a step's business meaning
+and registers the context fields the Engine may use. Add one `Required context:`
+or `Optional context:` line for each field; repeat either line type to register
+multiple fields. Required context must be present; optional context can be
+absent. A field meaning after `means` is an optional classifier hint. Duplicate
+fields or conflicting required and optional declarations fail validation. Each
+`Rule` defines the executable checks for one matching step, and all its clauses
+must hold. Only the supported vocabulary is accepted.
+
+## Parallel steps
+
+If two or more defined steps can run in parallel, add a `Group` that lists their
+step names:
+
+```gherkin
+Group: "parallel_reviews"
+  Given parallel steps are "fraud_review", "stock_review"
+  And all parallel steps must succeed
+  And combined duration must be within "5m"
+```
+
+Each member needs its own `Rule`; a `Step` block supplies business meaning and
+context for classification. The group needs at least two distinct members; the
+success and duration clauses are optional.
+If a later step needs both reviews, declare both as prerequisites in its Rule:
+
+```gherkin
+  And step "fraud_review" must have succeeded
+  And step "stock_review" must have succeeded
+```
 
 ## Preview and create
 
@@ -51,7 +92,7 @@ To update, increase `Version` and run:
 threadify-cli contracts update --id CONTRACT_ID --file refund.feature
 ```
 
-Use `.feature` for new contracts. Legacy YAML remains temporarily supported.
+Use `.feature` for contracts.
 
 ## Common clauses
 
