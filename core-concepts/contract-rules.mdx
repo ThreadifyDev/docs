@@ -1,0 +1,178 @@
+---
+title: Rule reference
+description: Every clause the contract language accepts.
+---
+
+Contracts accept only the sentences on this page. Unknown sentences, Cucumber
+scenarios, tags, tables and trailing text are errors.
+
+## Structure
+
+```gherkin
+Feature: payment_processing
+Version: 1
+Description: Charge approved orders.
+Include: identity_required:2
+
+Background:
+  Given the thread must finish within "1h"
+
+Step: "charge"
+  Description: "The provider accepted the charge."
+  Required context: "amount" means "Amount charged."
+
+Rule: Charge an approved order
+  When step "charge" is submitted
+  Then owner must be "payment_processor"
+  And step "identity_verified" must have succeeded
+  And this step is terminal
+
+Group: "reviews"
+  Given parallel steps are "fraud_review", "stock_review"
+```
+
+- `Feature` is required: letters, digits and underscores.
+- `Version` defaults to 1. Raise it every time you publish an update.
+- `Include`, `Background`, `Step` blocks and `Group` blocks are optional.
+- Every step needs exactly one `Rule`. Groups come after the rules.
+
+Metadata (`Feature`, `Version`, `Description`, `Include`) comes first. A rule
+starts with `When`, then one `Then` clause, then any number of `And` clauses.
+Blank lines and whole-line `#` comments are allowed; comments after a clause are
+not. Quoted values use double quotes, with `\"` and `\\` as escapes.
+
+## Step blocks
+
+```gherkin
+Step: "charge"
+  Description: "The provider accepted this payment."
+  Required context: "amount" means "Amount accepted in pounds."
+  Optional context: "provider_reference" means "Provider receipt identifier."
+  Optional context: "note"
+```
+
+- `Description` is required in a `Step` block. Without a `Step` block, the rule's
+  title is used as the description.
+- Add one context line per field. `means "..."` is optional.
+- A step with no declared context has no fields available to its rules. Extra
+  fields you send are stored with the step but aren't used in checks.
+- Declaring a field twice, or as both required and optional, is an error.
+
+## Step clauses
+
+| Clause | Meaning |
+| --- | --- |
+| `owner must be "processor"` | Only this role may report the step. Every step needs exactly one owner. |
+| `step type is "managed"` | `managed`, `external` or `human_in_loop` |
+| `this step is an entry point` | The run may start with this step |
+| `this step is terminal` | Passing this step completes the thread |
+| `step "approval" must have succeeded` | An earlier successful `approval` is required. Other steps may happen in between. |
+| `step "approval" must succeed before each invocation` | A new successful `approval` is required before every attempt at this step |
+| `next step must be one of "settled", "failed"` | The only steps allowed immediately after this one |
+| `this step must finish within "30s"` | The step's own duration limit |
+| `the next step must start within "5m"` | Time allowed before the next step. Needs a `next step` clause. |
+| `this step may be retried at most 2 times` | Retry limit. Needs a `next step` clause. |
+
+Once any rule uses `next step must be one of`, the whole contract uses strict
+transitions: list every allowed immediate move.
+
+Durations use `ms`, `s`, `m`, `h` or `d`.
+
+## Content clauses
+
+Content clauses check the context sent with the step. Values are compared as
+strings, and dotted names such as `"order.id"` are literal field names, not
+nested paths.
+
+| Clause | Passes when |
+| --- | --- |
+| `content "reference" must be present` | The field exists, even if empty |
+| `content "note" is optional` | Always; documents an optional field |
+| `content "reference" must not be empty` | The field exists and isn't blank |
+| `content "amount" must be a number` | The value is a number |
+| `content "amount" must be a number greater than 0` | Also `greater than or equal to`, `less than`, `less than or equal to` |
+| `content "confirmed" must be a boolean` | The value is exactly `true` or `false` |
+| `content "currency" must be one of "GBP", "USD"` | The value is one of these (case-sensitive) |
+| `content "status" must equal "approved"` | The value matches exactly (case-sensitive) |
+| `content "receipt" must match regex "^RF-[0-9]{8}$"` | The value matches the regular expression |
+| `content "tracking_number" must equal order_shipped.tracking_number` | The value matches a field from an earlier step |
+
+A content clause makes its field required. You can't put one on a field
+declared as optional.
+
+### Regular expressions
+
+Patterns use RE2 syntax (as in Go). A pattern matches anywhere in the value
+unless you anchor it with `^` and `$`. Flags such as `(?i)` work; lookarounds and
+backreferences don't. Inside quotes, double your backslashes (`"^\\d+$"`), or
+use character classes like `[0-9]` instead. Invalid patterns are rejected when
+you preview or publish.
+
+### Values from earlier steps
+
+An **unquoted** `step.field` on the right of `must equal` reads a field from an
+earlier step in the same thread:
+
+```gherkin
+  And content "tracking_number" must equal order_shipped.tracking_number
+```
+
+- It reads the most recent **successful, validated** `order_shipped`. Failed or
+  violated attempts are ignored.
+- It also makes `order_shipped` a prerequisite.
+- If that step hasn't succeeded yet, or the field is missing, the submission is
+  rejected. Threadify doesn't fall back to an older value.
+- Values must match exactly: `"1.00"` and `"1"` are different.
+- A quoted `"order_shipped.tracking_number"` is plain text, not a reference.
+
+## Thread-wide rules
+
+Put these in a `Background` block before the rules. All are optional.
+
+```gherkin
+Background:
+  Given the thread must finish within "1h"
+  And multiple terminal steps are allowed
+  And multiple terminal severity is "major"
+  And threads lock to this version
+```
+
+`multiple terminal severity` accepts `minor`, `warning`, `major` or `error`.
+
+## Parallel groups
+
+```gherkin
+Group: "parallel_reviews"
+  Given parallel steps are "fraud_review", "stock_review"
+  And all parallel steps must succeed
+  And combined duration must be within "5m"
+```
+
+A group needs at least two different steps, each with its own rule. Its name
+can't match a step or another group. Only the first line is required. A group
+doesn't make later steps wait for its members; add `must have succeeded` clauses
+for that.
+
+## Reuse a contract
+
+`Include` pulls in the steps and rules of a contract you've already published:
+
+```gherkin
+Feature: refund_processing
+Version: 1
+Include: identity_required:2
+
+Rule: Issue refund
+  When step "issue_refund" is submitted
+  Then owner must be "processor"
+  And step "identity_verified" must have succeeded
+  And this step is terminal
+```
+
+- Name a specific version. Later changes to the included contract don't affect
+  versions that already include it.
+- Step and group names must be unique across the combined contract.
+- Your own entry and terminal steps take priority over the included ones.
+- Preview rejects combinations that can't work, such as two content rules no
+  value can satisfy, or a step that can never be reached.
+- A contract can include up to 16 contracts and 512 steps in total.

@@ -1,64 +1,95 @@
 ---
 title: Use a contract
-description: Attach a versioned contract to a thread and record its steps.
+description: Start a thread on a contract version and check each step as you report it.
 ---
 
-[Create `refund_review`](/core-concepts/creating-contracts) before running these
-examples. Connect the SDK to your Engine with an API key and report as the
-contract's `processor` role.
+These examples use the `refund_review` contract from
+[Write a contract](/core-concepts/creating-contracts). Publish it first. The
+connection reports as the `processor` role, which the contract makes the owner
+of both steps.
 
 <CodeGroup>
 ```javascript JavaScript
-const thread = await connection.thread('refund:RF-123', { label: 'Refund RF-123', contract: 'refund_review', serviceName: 'processor' });
-await thread.step('approval').addContext({ reference: 'RF-123' })
+const thread = await connection.thread('refund:RF-123', {
+  label: 'Refund RF-123',
+  contract: 'refund_review',
+  role: 'processor',
+});
+
+await thread.step('approval')
+  .addContext({ reference: 'PAY-123' })
   .success('Approved', { waitFor: true });
-await thread.step('refund').addContext({
-  reference: 'RF-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678'
-}).success('Refund recorded', { waitFor: true });
+
+await thread.step('refund')
+  .addContext({ reference: 'PAY-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678' })
+  .success('Refund recorded', { waitFor: true });
 ```
 ```go Go
-thread, err := conn.Thread(ctx, "refund:RF-123", threadify.ThreadOptions{Label: "Refund RF-123", Contract: "refund_review", Role: "processor"})
-if err != nil { return err }
-_, err = thread.Step("approval").AddContext(map[string]any{"reference": "RF-123"}).
+thread, err := conn.Thread(ctx, "refund:RF-123", threadify.ThreadOptions{
+    Label:    "Refund RF-123",
+    Contract: "refund_review",
+    Role:     "processor",
+})
+if err != nil {
+    return err
+}
+
+_, err = thread.Step("approval").
+    AddContext(map[string]any{"reference": "PAY-123"}).
     Success(ctx, "Approved", threadify.ReportOptions{WaitFor: true})
-if err != nil { return err }
-_, err = thread.Step("refund").AddContext(map[string]any{
-    "reference": "RF-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678",
-}).Success(ctx, "Refund recorded", threadify.ReportOptions{WaitFor: true})
-if err != nil { return err }
+if err != nil {
+    return err
+}
+
+_, err = thread.Step("refund").
+    AddContext(map[string]any{"reference": "PAY-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678"}).
+    Success(ctx, "Refund recorded", threadify.ReportOptions{WaitFor: true})
+if err != nil {
+    return err
+}
 ```
 ```python Python
-thread = await connection.thread("refund:RF-123", {"contract": "refund_review", "role": "processor", "label": "Refund RF-123"})
-await thread.step("approval").add_context({"reference": "RF-123"}).success(
+thread = await connection.thread("refund:RF-123", {
+    "label": "Refund RF-123",
+    "contract": "refund_review",
+    "role": "processor",
+})
+
+await thread.step("approval").add_context({"reference": "PAY-123"}).success(
     "Approved", wait_for=True,
 )
+
 await thread.step("refund").add_context({
-    "reference": "RF-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678",
+    "reference": "PAY-123", "amount": 42, "currency": "GBP", "receipt": "RF-12345678",
 }).success("Refund recorded", wait_for=True)
 ```
 </CodeGroup>
 
-These examples record outcomes; they do not execute a real refund. To prevent
-an operation before it happens, obtain a [permission grant](/core-concepts/execution-waits)
-and execute only after it succeeds.
+Because `refund` is the terminal step, the thread completes when it passes.
 
-## Versions
+`waitFor: true` makes each call wait until Threadify has checked the step, and
+fails if the step broke the contract. Without it, the call returns as soon as
+the step is recorded. See
+[Recording is not the same as passing](/core-concepts/overview#recording-is-not-the-same-as-passing).
 
-Pass `refund_review:2` to choose a specific version. Omitting the version selects
-the latest when the thread is created; publishing a later version does not
-rewrite an existing thread's contract. Later requests use only the same thread
-key to resume; omit `contract` to load the stored binding and pinned version.
-Supplying a different contract or version is rejected. See the
-[cross-language resume examples](/core-concepts/threads#resume-across-requests).
+This example records a refund after it happened. To stop a refund the contract
+doesn't allow yet, [ask for permission first](/core-concepts/execution-waits).
 
-## Interpret results
+## Choose a version
 
-- A normal recording acknowledgement is not a completed validation decision.
-- `{ waitFor: true }` waits for that particular reported event's validation.
-- A failed operation can satisfy its contract; operation outcome and rule
-  compliance are separate facts.
-- A successfully validated terminal step completes the thread.
+`refund_review` uses the latest published version when the thread is created.
+Use `refund_review:2` to choose one. A thread keeps its version for its whole
+life, even after you publish a newer one.
 
-Subscribe to [notifications](/core-concepts/notifications/subscribing) or inspect
-[validation results](/core-concepts/data-retrieval/validation-results) to investigate
-violations. Recording telemetry does not automatically stop the caller's code.
+When you resume the thread later, leave `contract` out. The stored version is
+used automatically. Passing a different contract or version is rejected.
+
+## When a step breaks the contract
+
+- With `waitFor: true`, the call fails with the violation attached.
+- Otherwise the step is recorded and marked as violated. Find it in the
+  dashboard, through [validation results](/core-concepts/data-retrieval/validation-results),
+  or by [subscribing](/core-concepts/notifications/subscribing) to `rule.violated`.
+
+Threadify won't stop your code from continuing. If the next action matters,
+check the result before you take it.

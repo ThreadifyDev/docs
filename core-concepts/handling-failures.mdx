@@ -1,64 +1,65 @@
 ---
-title: 'Capturing Failures'
-description: 'Properly record caught business logic/app failures in your workflows'
+title: Record failures
+description: Report steps that failed or errored, and record retries.
 ---
 
-### Recording Failures
+Report a failure as a step outcome rather than skipping the step. That way the
+dashboard, your contract and your entity profile metrics all see it.
 
 <CodeGroup>
-
 ```javascript JavaScript
 const step = thread.step('payment_processed');
 
 try {
   const payment = await processPayment(orderId);
-  await step.addContext(payment).success();
+  await step.addContext({ paymentId: payment.id }).success();
 } catch (error) {
-  await step.failed({ 
-    message: error.message,
-    errorCode: 'PAYMENT_FAILED',
-    retryable: true
-  });
+  await step.failed({ message: error.message, errorCode: 'PAYMENT_FAILED' });
 }
 ```
-
 ```go Go
-paymentStep := thread.Step("payment_processed")
-payment, err := processPayment(orderId)
+step := thread.Step("payment_processed")
+
+payment, err := processPayment(orderID)
 if err != nil {
-    _, stepErr := paymentStep.Failed(ctx, map[string]any{
+    _, reportErr := step.Failed(ctx, map[string]any{
         "message":   err.Error(),
         "errorCode": "PAYMENT_FAILED",
-        "retryable": true,
     })
-    if stepErr != nil {
-        log.Fatal(stepErr)
-    }
-    return
+    return errors.Join(err, reportErr)
 }
-_, err = paymentStep.AddContext(payment).Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-```
 
+_, err = step.AddContext(map[string]any{"paymentId": payment.ID}).Success(ctx)
+return err
+```
 ```python Python
-payment_step = thread.step("payment_processed")
+step = thread.step("payment_processed")
+
 try:
     payment = await process_payment(order_id)
-    await payment_step.add_context(payment).success()
+    await step.add_context({"paymentId": payment.id}).success()
 except Exception as error:
-    await payment_step.failed({
-        "message": str(error),
-        "errorCode": "PAYMENT_FAILED",
-        "retryable": True
-    })
+    await step.failed({"message": str(error), "errorCode": "PAYMENT_FAILED"})
 ```
-
 </CodeGroup>
 
-### Retry Tracking
+Use `failed` when the operation ran and didn't succeed, such as a declined card.
+Use `error` when something went wrong unexpectedly, such as an exception or a
+timeout. Both accept a message string or an object of details.
 
-Record each distinct retry with its own invocation or idempotency key. Reusing
-a recording key deduplicates the report. Contracts with fresh prerequisites
-require a new approval for each invocation, including after a failed attempt.
+## Retries
+
+Each attempt is its own report:
+
+- If you use [`waitFor`](/core-concepts/execution-waits), each grant covers one
+  attempt, so request a new grant before retrying.
+- Otherwise, give each attempt its own
+  [idempotency key](/core-concepts/idempotency), such as `payment:ORD-1:attempt-2`.
+  Reusing the same key makes the retry look like a duplicate.
+
+If your contract uses `must succeed before each invocation`, a retry needs a new
+approval, even after a failed attempt.
+
+A failure isn't automatically a contract violation, and a contract can allow
+retries. See
+[Recording is not the same as passing](/core-concepts/overview#recording-is-not-the-same-as-passing).

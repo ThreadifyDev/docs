@@ -1,25 +1,22 @@
 ---
-title: 'Connecting'
-description: 'Connect to Threadify Engine and start tracking workflows'
+title: Connect
+description: Open a connection to your Engine from the SDK.
 ---
 
-### Basic Connection
-
 <CodeGroup>
-
 ```javascript JavaScript
 import { Threadify } from '@threadify/sdk';
 
-const threadify = await Threadify.connect('your-api-key', 'my-service', {
-  engineUrl: 'https://threadify.example.com'
+const connection = await Threadify.connect(process.env.THREADIFY_API_KEY, 'payment-service', {
+  engineUrl: 'https://threadify.example.com',
 });
-await threadify.close()
-```
 
+// When your process shuts down
+await connection.close();
+```
 ```go Go
-ctx := context.Background()
-conn, err := threadify.Connect(ctx, "your-api-key", 
-    threadify.WithServiceName("my-service"),
+conn, err := threadify.Connect(ctx, os.Getenv("THREADIFY_API_KEY"),
+    threadify.WithServiceName("payment-service"),
     threadify.WithEngineURL("https://threadify.example.com"),
 )
 if err != nil {
@@ -27,47 +24,41 @@ if err != nil {
 }
 defer conn.Close()
 ```
-
 ```python Python
+import os
 from threadify import Threadify
 
-# Connect with your API key and service name
 connection = await Threadify.connect(
-    "your-api-key",
-    service_name="my-service",
+    os.environ["THREADIFY_API_KEY"],
+    service_name="payment-service",
     engine_url="https://threadify.example.com",
 )
-```
 
+# When your process shuts down
+await connection.close()
+```
 </CodeGroup>
 
-### One Engine URL
+One connection can handle many threads. Open it once when your service starts
+and reuse it.
 
-Copy the address from **Settings → Engine** into JavaScript `engineUrl`, Go
-`WithEngineURL`, or Python `engine_url`. The SDK handles
-WebSocket and GraphQL routing internally; no separate paths are needed. A
-reverse-proxy prefix such as `https://example.com/threadify` is preserved.
-`Threadify.create({ apiKey, serviceName, engineUrl })` also accepts this option.
-Do not combine `engineUrl` with explicit `url`, `wsUrl` or `graphqlUrl` options.
-OpenTelemetry and MCP clients have their own collapsible setup sections in Settings.
+- **API key:** an [Engine API key](/authentication#create-an-api-key). Load it
+  from an environment variable or secret manager; never commit it.
+- **Service name:** identifies your service in the dashboard, for example
+  `payment-service`. Optional, but recommended.
+- **Engine URL:** the address from **Settings → Engine**. The SDK works out the
+  WebSocket and GraphQL addresses from it. If your Engine is behind a path, such
+  as `https://example.com/threadify`, include the path.
 
-### Parameters
+## Options
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `apiKey` | string | Yes | Your Threadify API key |
-| `serviceName` | string | No | Service identifier (e.g., 'payment-service') |
-| `options` | object | No | Connection options |
+| JavaScript | Go | Python | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `engineUrl` | `WithEngineURL` | `engine_url` | none | Your Engine's address |
+| `maxInFlight` | `WithMaxInFlight` | `max_in_flight` | 10 | How many [notifications](/core-concepts/notifications/subscribing) can be waiting for your acknowledgement at once (1–100) |
+| `debug` | `WithDebug` | `debug` | `false` | Log protocol messages |
+| — | `WithConnectTimeout` | `connect_timeout` | 10 s | How long to wait for the connection to open. In JavaScript this is fixed at 10 seconds. |
+| — | `WithRequestTimeout` | — | 1 s | Default timeout for each call to the Engine |
 
-### Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `maxInFlight` | number | 10 | Max pending notifications (max: 100) |
-| `engineUrl` | string | Set explicitly | Your Engine base URL for both writes and queries |
-| `reconnect` | boolean | true | Auto-reconnect on disconnect |
-| `timeout` | number | 30000 | Connection timeout (ms) |
-
-<Warning>
-Never commit API keys to version control. Use environment variables or secret managers/vault.
-</Warning>
+`Threadify.create({ apiKey, serviceName, engineUrl }).connect()` is equivalent
+in JavaScript.

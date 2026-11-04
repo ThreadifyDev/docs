@@ -1,62 +1,72 @@
 ---
 title: Troubleshooting
-description: Diagnose authentication, quotas, missing traces, and uncertain validation outcomes.
+description: Fixes for the problems people hit most often.
 ---
 
-## API requests return 429
+## Requests return 429
 
-Check the [Registry plan allowances](/plans-and-limits). A zero or missing
-`input_requests_per_second` can block traffic continuously. A quota can affect
-dashboard routes as well as telemetry; the plan page is not currently exempt.
-Check any reverse-proxy limiter too. Restart Registry after YAML changes and
-allow the Engine's next successful heartbeat to refresh its limits.
+You've reached a [plan limit](/plans-and-limits). If your Engine is behind a
+reverse proxy, check that the proxy isn't rate-limiting too.
+
+If the dashboard also returns `429`, the monthly bandwidth allowance is used up.
+The requests-per-second limit doesn't apply to signed-in dashboard users.
 
 ## Traces return 401 or 415
 
-- **401:** send `X-API-Key` with an active Engine API key. The Registry license
-  is the installation credential, not the normal telemetry credential.
-- **415:** use OTLP/HTTP protobuf at `/v1/traces`, with
-  `Content-Type: application/x-protobuf`. Do not post ordinary JSON or gRPC there.
+- **401:** send an Engine API key in the `X-API-Key` header. Your license key
+  doesn't work here.
+- **415:** the endpoint only accepts OTLP over HTTP as protobuf. Set
+  `Content-Type: application/x-protobuf`. JSON and gRPC aren't accepted; if your
+  exporter only speaks gRPC, put an OpenTelemetry Collector in front.
 
-A successful export can still report rejected spans. Inspect the OTLP response's
-partial-success details and Engine logs.
+A `200` response can still contain rejected spans. Check the OTLP response's
+partial-success details and the Engine log.
 
-## An assistant finds no threads
+## The dashboard or an assistant shows no threads
 
-Confirm its MCP URL points to the same Engine receiving telemetry. Check the
-API key, trace-export responses, time range, contract and actor filters. Archived
-queries can lag behind accepted events. Inspect an unfiltered history before
-assuming telemetry is absent.
+- Check you're looking at the same Engine that receives your data.
+- Check the API key is active and can read threads.
+- Remove filters (time range, contract, actor) and look again.
+- New activity can take a few seconds to appear.
 
-## Too many tiny threads
+## One run shows up as many small threads
 
-Inspect the trace IDs and run attributes. Set a consistent `workflow.run_id` or
-`threadify.thread_key` for spans belonging to the same logical run. Use a new
-value for each run, and keep its contract consistent. This does not merge old
-stored threads. [Correlation rules](/opentelemetry).
+Each OpenTelemetry trace becomes its own thread unless you tell Threadify which
+spans belong together. Set the same `threadify.thread_key` (or
+`workflow.run_id`) on every span in a run, and a different value for each run.
+Threads that were already split stay split. See
+[Choose the thread identity](/opentelemetry#choose-the-thread-identity).
 
-## Browser sign-in fails behind a proxy
+## Browser sign-in fails
 
-Set `registry.browser_origin` to the exact public HTTPS origin, serve the
-dashboard at the hostname root, and forward WebSocket upgrades. Use one hostname
-consistently: `localhost` and `127.0.0.1` are different browser origins. Registry
-must provide the identity flow, and non-owner users need an Engine invitation.
+- Set `server.browser_origin` to the exact address in the browser bar, including
+  `https://`.
+- Serve the dashboard at the root of the hostname, and forward WebSocket
+  upgrades.
+- Use one hostname consistently. `localhost` and `127.0.0.1` count as different
+  sites.
+- Anyone other than the license owner needs an invitation from **Team** first.
 
 ## A wait timed out
 
-A timeout is not permission. If an accepted report returned a `stepId`, resume
-with `waitForValidation` instead of reporting the outcome again. Recover uncertain
-permission requests using their original invocation ID. Preserve Valkey state and
-resolve abandoned claims. See [execution waits](/core-concepts/execution-waits).
+A timeout never means permission. Don't run the action.
 
-## Completion is 100%, but health degraded
+- If you were waiting for **validation after reporting** and the error has a
+  `stepId`, call `waitForValidation` with it. Don't report the step again.
+- If you were waiting for **permission**, retry with the same `invocationId` so
+  you don't claim a second grant.
 
-Completion measures the eventual outcome. Failed attempts, retries, delays, and
-rule violations are different evidence. Inspect the configured metrics and
-underlying threads in the [entity profile](/core-concepts/entity-profiles).
+See [Recovery](/core-concepts/execution-waits#recovery).
 
-## Startup asks for subscription.yaml
+## Completion is 100% but health is low
 
-That is an older Engine build. v1.1.2 still loads the file. The current source
-removes this dependency; use a release containing that change before removing
-the file from an older installation. `threadify --version` prints the build.
+Completion only says whether runs eventually finished. Health also counts
+failed attempts, retries, delays and rule violations along the way. Open the
+[entity profile](/core-concepts/entity-profiles) and look at the underlying
+threads.
+
+## Which version am I running?
+
+```sh
+threadify --version
+```

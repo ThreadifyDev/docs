@@ -1,0 +1,83 @@
+---
+title: Entity profile queries
+description: Read entity profiles, their metrics and their threads.
+---
+
+## One profile
+
+Look a profile up by its ID, or by profile type and reference value:
+
+```graphql
+query {
+  entityProfile(type: "Customers", refKey: "CUST-001") {
+    id
+    name
+    refKey
+    lastActiveAt
+    metrics {
+      totalDeliveries
+      completedSuccessfully
+      validationViolations
+      deliveryHealthScore
+      averageDeliveryTimeMs
+    }
+    computedMetrics(range: "30d")
+    deliveryHealth(range: "30d")
+  }
+}
+```
+
+`refKey` is the entity's reference **value**, such as the customer ID.
+`computedMetrics` returns the metrics you configured on the profile type, and
+`deliveryHealth` the health breakdown. `range` is `7d` (the default), `30d` or `90d`.
+
+## Profiles of one type
+
+```graphql
+query {
+  entityProfilesByType(type: "Customers", search: "jane", limit: 25) {
+    totalCount
+    items {
+      id
+      name
+      refKey
+    }
+  }
+}
+```
+
+`search` matches the name or reference value, ignoring case.
+
+## A profile's threads
+
+```graphql
+query {
+  entityProfileHistory(profileID: "PROFILE_ID", status: "completed", limit: 50) {
+    totalCount
+    threads {
+      id
+      label
+      status
+      startedAt
+    }
+  }
+}
+```
+
+Also accepts `startedAfter`, `startedBefore` and `offset`.
+
+## Profile types
+
+```graphql
+query {
+  entityProfileTypes {
+    id
+    name
+    type
+    description
+  }
+}
+```
+
+`type` is the list of reference keys the profile type groups by, such as
+`["customer_id"]`.

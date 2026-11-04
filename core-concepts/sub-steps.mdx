@@ -1,90 +1,67 @@
 ---
 title: Sub-steps
-description: These are used for tracking smaller unit of work in a business process eg conditional logics, sub-functional logic, etc.
+description: Record the smaller operations inside a step, such as checks and calls to other services.
 ---
 
-Sub-steps record smaller operations within a step. Add them before marking the
-parent step successful or failed.
+A sub-step records part of a larger step: the card check inside a payment, or
+each API call an agent makes during one tool call. Sub-steps show up under their
+step in the dashboard. They help you see where time went and what failed.
 
-#### When to Use
+Add sub-steps before you report the step's outcome. They're sent with it.
 
-- **Complex operations** - Break down multiple distinct actions within one step
-- **Debugging visibility** - Track intermediate progress for troubleshooting
-- **Performance analysis** - Identify bottlenecks within step execution
-
-### Example
-
-<Tabs>
-<Tab title="Node.js">
-```javascript
-// Track granular operations within a step
-const paymentStep = thread.step('payment_processed');
+<CodeGroup>
+```javascript JavaScript
+const payment = thread.step('payment_processed');
 
 try {
-  paymentStep.subStep('validate_card', { cardType: 'visa' }, 'success');
-  paymentStep.subStep('check_fraud', { fraudScore: 0.15 }, 'success');
-  paymentStep.subStep('authorize_payment', { authCode: 'AUTH-123' }, 'success');
-  
-  await paymentStep
-    .addContext({ totalAmount: 299.99 })
-    .success();
-    
+  payment.subStep('validate_card', { cardType: 'visa' });
+  payment.subStep('check_fraud', { fraudScore: 0.15 });
+  payment.subStep('authorize', { authCode: 'AUTH-123' });
+
+  await payment.addContext({ amount: 299.99 }).success();
 } catch (error) {
-  paymentStep.subStep('error_handler', { error: error.message }, 'failed');
-  await paymentStep.failed({ message: 'Payment failed' });
+  payment.subStep('error', { error: error.message }, 'failed');
+  await payment.failed('Payment failed');
 }
 ```
-</Tab>
-<Tab title="Go">
-```go
-// Track granular operations within a step
-paymentStep := thread.Step("payment_processed")
+```go Go
+payment := thread.Step("payment_processed")
 
-err := processPayment()
-if err != nil {
-    paymentStep.SubStep("error_handler", map[string]any{"error": err.Error()}, "failed")
-    _, stepErr := paymentStep.Failed(ctx, map[string]any{"message": "Payment failed"})
-    if stepErr != nil {
-        log.Fatal(stepErr)
+if err := processPayment(); err != nil {
+    payment.SubStep("error", map[string]any{"error": err.Error()}, "failed")
+    if _, stepErr := payment.Failed(ctx, "Payment failed"); stepErr != nil {
+        return stepErr
     }
-    return
+    return err
 }
 
-paymentStep.SubStep("validate_card", map[string]any{"cardType": "visa"}, "success")
-paymentStep.SubStep("check_fraud", map[string]any{"fraudScore": 0.15}, "success")
-paymentStep.SubStep("authorize_payment", map[string]any{"authCode": "AUTH-123"}, "success")
+payment.SubStep("validate_card", map[string]any{"cardType": "visa"})
+payment.SubStep("check_fraud", map[string]any{"fraudScore": 0.15})
+payment.SubStep("authorize", map[string]any{"authCode": "AUTH-123"})
 
-_, err = paymentStep.
-    AddContext(map[string]any{"totalAmount": 299.99}).
-    Success(ctx)
-if err != nil {
-    log.Fatal(err)
+if _, err := payment.AddContext(map[string]any{"amount": 299.99}).Success(ctx); err != nil {
+    return err
 }
 ```
-</Tab>
-<Tab title="Python">
-```python
-# Track granular operations within a step
-payment_step = thread.step("payment_processed")
+```python Python
+payment = thread.step("payment_processed")
 
 try:
-    payment_step.sub_step("validate_card", {"cardType": "visa"}, "success")
-    payment_step.sub_step("check_fraud", {"fraudScore": 0.15}, "success")
-    payment_step.sub_step("authorize_payment", {"authCode": "AUTH-123"}, "success")
+    payment.sub_step("validate_card", {"cardType": "visa"})
+    payment.sub_step("check_fraud", {"fraudScore": 0.15})
+    payment.sub_step("authorize", {"authCode": "AUTH-123"})
 
-    await payment_step.add_context({"totalAmount": 299.99}).success()
+    await payment.add_context({"amount": 299.99}).success()
 except Exception as error:
-    payment_step.sub_step("error_handler", {"error": str(error)}, "failed")
-    await payment_step.failed({"message": "Payment failed"})
+    payment.sub_step("error", {"error": str(error)}, "failed")
+    await payment.failed("Payment failed")
 ```
-</Tab>
-</Tabs>
-#### Properties
+</CodeGroup>
 
-| Parameter | Required | Default | Description |
-|-----------|----------|---------|-------------|
-| `name` | Yes | — | Sub-step identifier |
-| `context` | No | Empty | Additional data |
-| `status` | No | `success` | `success` or `failed` |
+`subStep(name, data?, status?)` takes a name, optional data, and a status of
+`success` (the default) or `failed`.
 
-Unlike steps, sub-steps are not contract-validated and do not emit notifications.
+Contracts don't check sub-steps, and sub-steps don't trigger notifications. If
+something needs a rule or an alert, make it a step.
+
+With OpenTelemetry, span events become sub-steps automatically.

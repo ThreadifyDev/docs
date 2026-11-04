@@ -1,63 +1,54 @@
 ---
-title: 'Joining Threads'
-description: 'Join threads using invitations or direct access'
+title: Join a thread
+description: Join a thread with an invitation token, or by ID from your own services.
 ---
 
-### Joining
+## With an invitation
+
+The other party connects with their own API key and joins with the token you
+sent them. Their role and access level come from the invitation.
 
 <CodeGroup>
-
 ```javascript JavaScript
-// With invitation token (accessLevel comes from the invite)
 const thread = await connection.join(invitationToken);
-
-// Direct join (internal services; accessLevel defaults to participant)
-const thread = await connection.join('thread-uuid', 'logistics');
 ```
-
 ```go Go
-// With invitation token (accessLevel comes from the invite)
 thread, err := conn.Join(ctx, threadify.WithJoinToken(invitationToken))
 if err != nil {
-    log.Fatal(err)
+    return err
 }
+```
+```python Python
+thread = await connection.join(token=invitation_token)
+```
+</CodeGroup>
 
-// Direct join (internal services; accessLevel defaults to participant)
+## By ID
+
+Your own services can join a thread directly with its ID and a contract role.
+They join as a participant.
+
+<CodeGroup>
+```javascript JavaScript
+const thread = await connection.join(threadId, 'logistics');
+```
+```go Go
 thread, err := conn.Join(ctx,
-    threadify.WithJoinThreadID("thread-uuid"),
+    threadify.WithJoinThreadID(threadID),
     threadify.WithJoinRole("logistics"),
 )
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 ```
-
 ```python Python
-# With invitation token (accessLevel comes from the invite)
-thread = await connection.join(token=invitation_token)
-
-# Direct join (internal services; accessLevel defaults to participant)
-thread = await connection.join(
-    thread_id="thread-uuid",
-    role="logistics",
-)
+thread = await connection.join(thread_id=thread_id, role="logistics")
 ```
-
 </CodeGroup>
 
-### Parameters
+If you know the thread's key, calling
+[`connection.thread(key, { role })`](/core-concepts/threads) is usually simpler.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `tokenOrThreadId` | string | Invitation token or thread ID |
-| `role` | string | Business/contract role (required for direct join only, e.g., `"logistics"`, `"supplier"`) |
-
-### Thread Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string | Thread ID |
-| `myRole` | string | Your assigned role |
-| `myAccessLevel` | string | Your access level |
-| `contractName` | string | Contract name |
-| `status` | string | Thread status |
+Once joined, record steps as usual. Your role decides which contract steps you
+can report, and your access level decides what else you can do and which
+notifications you get. See [Roles and access](/things-to-know/access-levels).

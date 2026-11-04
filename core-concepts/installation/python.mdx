@@ -1,79 +1,35 @@
 ---
-title: 'Python'
-description: 'Install the Threadify SDK for Python projects'
+title: Python
+description: Install the Threadify SDK for Python.
 ---
 
-### Installation
+Requires Python 3.10 or later.
 
 <CodeGroup>
-
 ```bash pip
 pip install threadify-sdk
 ```
-
 ```bash uv
 uv pip install threadify-sdk
 ```
-
 </CodeGroup>
 
-## Import
+For the OpenTelemetry exporter, install the extra:
 
-<CodeGroup>
+```bash
+pip install 'threadify-sdk[otel]'
+```
 
-```python Standard Import
+```python
 from threadify import Threadify
 ```
 
-```python With Alias
-import threadify
-```
+## Things that work differently in Python
 
-</CodeGroup>
+- The SDK is async. Call it from an `asyncio` event loop and `await` each call.
+- Names use snake case: `add_context`, `wait_for`, `service_name`.
+- Timeouts are in seconds.
+- To cancel a [wait](/core-concepts/execution-waits), cancel its task.
+- To cancel a thread, call `thread.close()`. (`complete()` completes it.)
 
-## Requirements
-
-- **Python version**: 3.10 or higher
-- **Dependencies**: Automatically managed by pip
-
-## Self-hosted Engine and contract waits
-
-These examples target Python SDK 0.3 and later.
-
-```python
-from threadify import Threadify, WaitOptions
-
-connection = await Threadify.connect(
-    api_key,
-    engine_url="https://threadify.example.com",
-    service_name="payments",
-)
-threads = await connection.get_threads_by_ref({"order_id": "ORD-1001"})
-thread = await connection.join(thread_id, "processor")
-grant = await thread.wait_for("charge", WaitOptions(timeout=15))
-# Perform the permitted operation before reporting it.
-result = await thread.step("charge").add_context({"amount": 42}).success(
-    "charged", wait_for=True, timeout=15,
-)
-await thread.wait_for_validation("charge", result.step_id)
-```
-
-The SDK derives both WebSocket and GraphQL paths from `engine_url`, retaining
-reverse-proxy prefixes. Wait timeouts use seconds. `wait_for` requests Engine
-permission; use `wait_for_notification` for the older notification-only behavior.
-Cancel a pending wait by cancelling its task. `await grant.cancel()` closes a
-granted invocation without restoring any consumed fresh prerequisites.
-
-Install `threadify-sdk[otel]` for the OTEL exporter. Recorded span and span-event
-timestamps are preserved even when export happens later.
-
-#### Next Steps
-
-<CardGroup cols={2}>
-  <Card title="Connecting" icon="plug" href="/core-concepts/connecting">
-    Connect to Threadify Engine with your API key
-  </Card>
-  <Card title="Tracking Workflows" icon="chart-line" href="/core-concepts/tracking-workflows">
-    Start tracking your first workflow
-  </Card>
-</CardGroup>
+Next: [connect to your Engine](/core-concepts/connecting).

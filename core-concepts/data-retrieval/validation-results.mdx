@@ -1,57 +1,65 @@
 ---
-title: 'Validation Results'
-description: 'Query contract violations'
+title: Validation results
+description: See which steps broke the contract, and why.
 ---
 
-### Getting Validations
+Every step on a contracted thread gets a validation result. Read them from a
+recorded thread:
 
 <CodeGroup>
-
 ```javascript JavaScript
-const validations = await thread.validationResults({ limit: 10 });
-```
+const archived = await connection.getThread(threadId);
+const results = await archived.validationResults({ limit: 10 });
 
-```go Go
-validations, err := thread.ValidationResults(ctx, 10)
-if err != nil {
-    log.Fatal(err)
+for (const result of results) {
+  if (result.hasCriticalViolation) {
+    console.log(result.stepName, result.validations);
+  }
 }
 ```
-
-```python Python
-validations = await archived_thread.validation_results(limit=10)
+```go Go
+archived, err := conn.GetThread(ctx, threadID)
+if err != nil {
+    return err
+}
+results, err := archived.ValidationResults(ctx, 10)
 ```
-
+```python Python
+archived = await connection.get_thread(thread_id)
+results = await archived.validation_results(limit=10)
+```
 </CodeGroup>
 
-### Query Options
+| Field | Meaning |
+| --- | --- |
+| `stepName`, `stepId` | The step that was checked |
+| `timestamp` | When it was checked |
+| `validations` | The individual findings (below) |
+| `hasCriticalViolation` | Whether any finding is critical |
+| `criticalCount`, `warningCount`, `minorCount`, `infoCount` | Findings by severity |
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `stepName` | string | Filter by step |
-| `severity` | string | `critical`, `warning`, `info` |
-| `status` | string | `violated`, `passed` |
-| `limit` | number | Max results |
+Each finding has a `type`, a `message`, and where relevant the `field`, the
+`expected` and `actual` values, and the `rule` it came from.
 
-### Validation Properties
+## Finding types
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `stepId` | string | Step ID |
-| `stepName` | string | Step name |
-| `status` | string | `violated` or `passed` |
-| `severity` | string | `critical`, `warning`, `info` |
-| `message` | string | Human-readable message |
-| `violationType` | string | Type of violation |
-| `timestamp` | string | ISO timestamp |
+| Type | Meaning |
+| --- | --- |
+| `invalid_transition` | The step isn't allowed right after the previous one (`next step must be one of`) |
+| `missing_dependency` | A prerequisite step hasn't succeeded (`must have succeeded`) |
+| `fresh_dependency_required` | The step needed a new approval for this attempt (`must succeed before each invocation`) |
+| `retry_limit_exceeded` | The step was retried more often than allowed |
+| `step_timeout_exceeded` | The step, or the gap before the next step, took longer than allowed |
+| `max_duration_exceeded` | The whole thread took longer than allowed |
+| `multiple_terminal_states` | More than one terminal step was reached |
+| `thread_already_terminal` | A step arrived after the thread had finished |
 
-### Violation Types
+Severities are `critical`, `major`, `minor`, `warning` and `info`.
 
-| Type | Severity |
-|------|----------|
-| `invalid_entry_point` | Critical |
-| `missing_required_field` | Critical |
-| `invalid_transition` | Critical |
-| `step_timeout` | Critical |
-| `thread_max_duration` | Critical |
-| `retry_limit_exceeded` | Critical |
+Problems with a step's owner or content (a missing required field, a value that
+fails a content rule) don't appear here. Those steps are rejected when they're
+submitted and never recorded; the SDK call returns the error instead. See
+[When checks happen](/core-concepts/creating-contracts#when-checks-happen).
+
+To react to violations as they happen, [subscribe](/core-concepts/notifications/subscribing)
+to `rule.violated`.

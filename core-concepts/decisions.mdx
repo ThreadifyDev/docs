@@ -1,0 +1,133 @@
+---
+title: Ask what's allowed
+description: Use can, should and next to see what the contract allows on a thread, without claiming anything.
+---
+
+An agent or a UI often needs to know what it may do next before it does
+anything. Three read-only calls answer that from the thread's contract and
+history:
+
+| Call | Answers |
+| --- | --- |
+| `can` | Is this action allowed right now? If not, what's missing? |
+| `should` | Does this action make sense at this point in the process? (advice only) |
+| `next` | What could happen next? |
+
+None of them grants permission. They describe the thread at the moment you ask.
+Before an action with consequences, still call
+[`waitFor`](/core-concepts/execution-waits), which is the only call that
+reserves an attempt.
+
+Decisions answer for the caller's own role, so they need write access to the
+thread. Observers can't call them.
+
+## can
+
+Pass either `action`, the exact step name from your contract, or `goal`, a
+plain-language description that Threadify maps to one of your steps.
+
+<CodeGroup>
+```javascript JavaScript
+const decision = await thread.can({ action: 'refund' });
+
+if (!decision.allowed) {
+  console.log(decision.reason, decision.missingSteps);
+}
+```
+```go Go
+decision, err := thread.Can(ctx, threadify.DecisionCandidate{Action: "refund"})
+if err != nil {
+    return err
+}
+if !decision.Allowed {
+    log.Println(decision.Reason, decision.MissingSteps)
+}
+```
+```python Python
+decision = await thread.can(action="refund")
+
+if not decision.allowed:
+    print(decision.reason, decision.missing_steps)
+```
+</CodeGroup>
+
+Add `context` to also check the data you're about to send against the step's
+content rules, for example `thread.can({ action: 'refund', context: { amount: 42 } })`.
+Without it, `can` only checks order, roles and prerequisites.
+
+| Field | Meaning |
+| --- | --- |
+| `allowed` | Whether the action is allowed now |
+| `status` | `allowed`, `denied`, `uncertain` or `requires_claim` |
+| `matchedBy` | How the action was identified: `exact`, `classifier` or `none` |
+| `requiredSteps`, `satisfiedSteps`, `missingSteps` | The prerequisites, and which are done |
+| `previousStep` | The last successful step |
+| `reason` | A plain-language explanation |
+
+`requires_claim` means the action needs a fresh grant each time (it uses
+`must succeed before each invocation`). Call `waitFor` before doing it.
+`uncertain` means a `goal` couldn't be matched confidently to a single step.
+
+## should
+
+```javascript
+const advice = await thread.should({ action: 'refund' });
+// advice.recommendation: "yes", "no", "uncertain" or "unavailable"
+```
+
+`should` gives advice about whether an allowed action fits the current state.
+It never makes an action allowed or blocked.
+
+## next
+
+```javascript
+const { paths } = await thread.next();
+for (const path of paths) {
+  console.log(path.actions.join(' → '), path.status, path.reason);
+}
+```
+
+Each path is a short sequence of steps that could start now. `status` is
+`allowed` or `requires_claim`. Later steps in a path may depend on what happens
+first, so check them again when you get there.
+
+## Classifier
+
+Mapping a `goal` to a step, and `should`, use a classifier configured on your
+Engine. Without one, `can` and `next` still work when you pass exact step names,
+and `should` returns `unavailable`. A classifier can only choose between steps
+that are in your contract, and a low-confidence answer never makes an action
+allowed.
+
+## Human approval
+
+To require a person's approval before an agent acts, put it in the contract: a
+step owned by the reviewer, which the protected action depends on.
+
+```gherkin
+Rule: Approve deletion
+  When step "delete_approval" is submitted
+  Then owner must be "reviewer"
+  And this step is an entry point
+
+Rule: Delete record
+  When step "delete_record" is submitted
+  Then owner must be "agent"
+  And step "delete_approval" must succeed before each invocation
+```
+
+1. Before approval, `can({ action: 'delete_record' })` reports `delete_approval`
+   as missing.
+2. Your application shows the request to a reviewer. Threadify doesn't show any
+   UI. When the reviewer approves, record a successful `delete_approval` as the
+   reviewer. Don't record a refusal as a successful step.
+3. `can` now returns `requires_claim`. The agent's tool calls
+   `waitFor('delete_record')`, deletes the record, and reports the outcome.
+4. The approval is used up. The next deletion needs a new approval.
+
+For an agent, expose the business action as an ordinary tool. Its code can call
+`can` or `next` to return a helpful reason when the action isn't allowed yet;
+the model doesn't need separate decision tools.
+
+Decisions are also available in [GraphQL](/api-reference/overview) as `can`,
+`should` and `next`.

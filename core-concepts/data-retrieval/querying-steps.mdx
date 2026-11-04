@@ -1,113 +1,95 @@
 ---
-title: 'Querying Steps'
-description: 'Get step data and history'
+title: Read steps
+description: Read a recorded thread's steps, each step's attempts, and its sub-steps.
 ---
 
-### Getting Steps
+Start from a recorded thread (see [Find threads](/core-concepts/data-retrieval/getting-threads)):
 
 <CodeGroup>
-
 ```javascript JavaScript
-// All steps
-const steps = await thread.steps();
+const archived = await connection.getThread(threadId);
 
-// Specific step
-const orderSteps = await thread.steps('order_placed');
-
-// With filters
-const failedSteps = await thread.steps('payment_processed', { 
-  status: 'failed',
-  limit: 50
-});
+const steps = await archived.steps();                                 // all steps
+const payments = await archived.steps('payment_processed');           // one step name
+const failed = await archived.steps('payment_processed', { status: 'failed' });
 ```
-
 ```go Go
-// All steps
-steps, err := thread.Steps(ctx, "", "", "")
+archived, err := conn.GetThread(ctx, threadID)
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 
-// Specific step
-orderSteps, err := thread.Steps(ctx, "order_placed", "", "")
-if err != nil {
-    log.Fatal(err)
-}
-
-// With filters
-failedSteps, err := thread.Steps(ctx, "payment_processed", "", "failed")
-if err != nil {
-    log.Fatal(err)
-}
+// Steps(ctx, stepName, idempotencyKey, status); "" means any
+steps, err := archived.Steps(ctx, "", "", "")
+payments, err := archived.Steps(ctx, "payment_processed", "", "")
+failed, err := archived.Steps(ctx, "payment_processed", "", "failed")
 ```
-
 ```python Python
-# All steps
-steps = await archived_thread.steps()
+archived = await connection.get_thread(thread_id)
 
-# Specific step
-order_steps = await archived_thread.steps(step_name="order_placed")
-
-# With filters
-failed_steps = await archived_thread.steps(
-    step_name="payment_processed",
-    status="failed"
-)
+steps = await archived.steps()
+payments = await archived.steps(step_name="payment_processed")
+failed = await archived.steps(step_name="payment_processed", status="failed")
 ```
-
 </CodeGroup>
 
-### Filter Options
+`status` is `success`, `failed` or `error`.
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `status` | string | `success` or `failed` |
-| `startedAfter` | string | ISO timestamp filter |
-| `startedBefore` | string | ISO timestamp filter |
-| `limit` | number | Max results |
+Each step has:
 
-### Step Properties
+| Field | Meaning |
+| --- | --- |
+| `stepName` | The step's name |
+| `status` | Its latest outcome |
+| `idempotencyKey` | The key the report was recorded under |
+| `retryCount` | How many times it was retried |
+| `firstSeenAt`, `lastUpdatedAt` | ISO 8601 timestamps |
+| `previousStep` | The step recorded before it |
+| `verified` | Whether its [integrity check](/things-to-know/hash-chain) passed |
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `stepId` | string | Step ID |
-| `stepName` | string | Step name |
-| `status` | string | `success` or `failed` |
-| `idempotencyKey` | string | Idempotency key |
-| `context` | object | Business context |
-| `createdAt` | string | ISO timestamp |
-| `retryCount` | number | Retry attempts |
+## Every attempt at a step
 
-### Step History
+A step's history lists each report, including retries:
 
 <CodeGroup>
-
 ```javascript JavaScript
-const history = await step.history();
+const [step] = await archived.steps('payment_processed');
+const history = await step.history({ limit: 100 });
 ```
-
 ```go Go
-history, err := step.History(ctx)
-if err != nil {
-    log.Fatal(err)
-}
+history, err := steps[0].History(ctx, &threadify.HistoryQueryOptions{Limit: 100})
 ```
-
 ```python Python
-from threadify.models import HistoryQueryOptions
+from threadify import HistoryQueryOptions
 
-history = await step.history(HistoryQueryOptions(limit=100))
+history = await steps[0].history(HistoryQueryOptions(limit=100))
 ```
-
 </CodeGroup>
 
-### History Properties
+| Field | Meaning |
+| --- | --- |
+| `attempt` | Attempt number |
+| `status` | Outcome of that attempt |
+| `timestamp` | When it was recorded |
+| `duration` | How long it took, in milliseconds |
+| `context` | The context sent with it, as JSON |
+| `error` | Error message, if it failed |
+| `actor`, `actorService` | Who reported it |
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `attempt` | number | Attempt number |
-| `status` | string | `success` or `failed` |
-| `timestamp` | string | ISO timestamp |
-| `context` | object | Context at attempt |
-| `error` | string | Error message |
-| `duration` | number | Execution time (ms) |
+You can also filter history by `startAt`, `endAt`, `activityType` and `actor`.
+
+## Sub-steps
+
+<CodeGroup>
+```javascript JavaScript
+const subSteps = await step.subSteps();
+```
+```go Go
+subSteps, err := steps[0].SubSteps(ctx)
+```
+```python Python
+sub_steps = await steps[0].sub_steps()
+```
+</CodeGroup>
+
+Each sub-step has a `name`, `status`, `payload` and `recordedAt`.

@@ -1,44 +1,47 @@
 ---
-title: 'Integrity Verification'
-description: 'Verify cryptographic hash chain integrity for threads and steps'
+title: Integrity queries
+description: Verify a thread's or a step's recorded history from code.
 ---
 
-## Verify Hash Chain Integrity
+## A whole thread
 
-<CodeGroup>
-
-```graphql GraphQL
-# Verify complete thread hash chain
+```graphql
 query {
-  verifyThreadIntegrity(threadId: "thread-123") {
+  verifyThreadIntegrity(threadId: "THREAD_ID") {
     verified
     totalEvents
     brokenAt
+    error
+    lastVerifiedAt
+  }
+}
+```
+
+If `verified` is `false`, `brokenAt` says where the chain stops matching.
+
+## One step
+
+```graphql
+query {
+  verifyStepIntegrity(threadId: "THREAD_ID", stepName: "refund", idempotencyKey: "KEY") {
+    verified
+    hash
+    prevHash
     error
   }
 }
 ```
 
-```graphql
-# Verify specific step
-query {
-  verifyStepIntegrity(
-    threadId: "thread-123"
-    stepName: "order_placed"
-    idempotencyKey: "order_456"
-  ) {
-    verified
-    hash
-    prevHash
-  }
-}
-```
+All three arguments are required. Get the idempotency key from the thread's
+[steps](/api-reference/step-queries).
+
+## While reading a thread
 
 ```graphql
-# Get hash chain data
 query {
-  thread(id: "thread-123") {
+  thread(id: "THREAD_ID") {
     lastHash
+    hashChainVerified
     steps {
       stepName
       hash
@@ -49,25 +52,5 @@ query {
 }
 ```
 
-</CodeGroup>
-
-## Hash Chain Status Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `verified` | Boolean! | Chain integrity verified |
-| `lastVerifiedAt` | String! | Last verification timestamp |
-| `totalEvents` | Int! | Total events in chain |
-| `brokenAt` | String | Timestamp where chain broke |
-| `error` | String | Error message (if broken) |
-
-## Step Integrity Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `verified` | Boolean! | Step integrity verified |
-| `hash` | String | Step hash |
-| `prevHash` | String | Previous step hash |
-| `error` | String | Error message (if invalid) |
-
-For the integrity model and common uses, see [Hash Chain](/things-to-know/hash-chain).
+Verification is only computed for the fields you ask for. For what a result
+means, see [Integrity verification](/things-to-know/hash-chain).

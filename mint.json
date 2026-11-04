@@ -16,30 +16,46 @@
     }
   },
   "topbarCtaButton": {
-    "type": "github",
-    "url": "https://github.com/ThreadifyDev/docs"
+    "name": "Get a license",
+    "url": "https://threadify.dev/signup"
   },
   "navigation": [
     {
-      "group": "Getting Started",
+      "group": "Get started",
       "pages": [
         "introduction",
-        "self-hosting",
-        "personal-ai-gateway",
         "quickstart",
-        "authentication",
-        "plans-and-limits",
-        "cli",
-        "troubleshooting"
+        "self-hosting",
+        "authentication"
       ]
     },
     {
-      "group": "Core Concepts",
+      "group": "Concepts",
       "pages": [
         "core-concepts/overview",
         "core-concepts/threads",
+        "core-concepts/tracking-workflows",
+        "core-concepts/sub-steps",
+        "core-concepts/external-references",
+        "core-concepts/ending-threads",
+        "core-concepts/entity-profiles"
+      ]
+    },
+    {
+      "group": "Contracts",
+      "pages": [
+        "core-concepts/creating-contracts",
+        "core-concepts/contract-rules",
+        "core-concepts/working-with-contracts",
+        "core-concepts/execution-waits",
+        "core-concepts/decisions"
+      ]
+    },
+    {
+      "group": "SDKs",
+      "pages": [
         {
-          "group": "Installation",
+          "group": "Install",
           "pages": [
             "core-concepts/installation/javascript",
             "core-concepts/installation/go",
@@ -47,19 +63,11 @@
           ]
         },
         "core-concepts/connecting",
-        "opentelemetry",
-        "core-concepts/tracking-workflows",
-        "core-concepts/sub-steps",
-        "core-concepts/external-references",
-        "core-concepts/entity-profiles",
-        "core-concepts/creating-contracts",
-        "core-concepts/working-with-contracts",
-        "core-concepts/execution-waits",
+        "core-concepts/browser",
         "core-concepts/idempotency",
         "core-concepts/handling-failures",
-        "core-concepts/ending-threads",
         {
-          "group": "Data Retrieval",
+          "group": "Read history",
           "pages": [
             "core-concepts/data-retrieval/getting-threads",
             "core-concepts/data-retrieval/querying-steps",
@@ -68,7 +76,7 @@
           ]
         },
         {
-          "group": "Thread Collaboration",
+          "group": "Work with other parties",
           "pages": [
             "core-concepts/thread-collaboration/inviting-parties",
             "core-concepts/thread-collaboration/joining-threads"
@@ -78,35 +86,46 @@
           "group": "Notifications",
           "pages": [
             "core-concepts/notifications/subscribing",
-            "core-concepts/notifications/unsubscribing",
-            "core-concepts/notifications/handling"
+            "core-concepts/notifications/handling",
+            "core-concepts/notifications/unsubscribing"
           ]
         }
       ]
     },
     {
-      "group": "Integrity and access",
+      "group": "Integrations",
       "pages": [
-        "things-to-know/hash-chain",
-        "things-to-know/access-levels"
+        "opentelemetry",
+        "core-concepts/mcp-integration",
+        "cli",
+        "personal-ai-gateway"
       ]
     },
     {
-      "group": "API Reference",
+      "group": "Operate",
+      "pages": [
+        "plans-and-limits",
+        "things-to-know/access-levels",
+        "things-to-know/hash-chain",
+        "troubleshooting"
+      ]
+    },
+    {
+      "group": "GraphQL API",
       "pages": [
         "api-reference/overview",
         "api-reference/thread-queries",
         "api-reference/step-queries",
         "api-reference/validation-queries",
         "api-reference/contract-queries",
-        "api-reference/integrity-verification",
-        "core-concepts/mcp-integration"
+        "api-reference/entity-profile-queries",
+        "api-reference/integrity-verification"
       ]
     }
   ],
   "footerSocials": {
     "website": "https://threadify.dev",
-    "github": "https://github.com/ThreadifyDev/docs"
+    "github": "https://github.com/ThreadifyDev"
   },
   "search": {
     "prompt": "Ask me anything about Threadify..."

@@ -1,98 +1,80 @@
 ---
-title: 'Capturing Workflows'
-description: 'Capture business workflows as threads (execution graphs)'
+title: Record steps
+description: Report each operation in a thread with its outcome and data.
 ---
 
-### Creating or Resuming a Thread
-
-A thread is one workflow execution, such as an order, support ticket or customer
-onboarding. Its steps form an execution graph across every participating service.
-Use the application's durable process key to recover the same thread in later
-requests. A new key creates a thread; a closed key rejects further writes.
-See [resume across requests](/core-concepts/threads#resume-across-requests).
+A step is one thing that happened in a run: an order received, a payment
+taken, a tool called. You report it with a name, an outcome and some context.
 
 <CodeGroup>
-
 ```javascript JavaScript
-const thread = await threadify.thread('User-Onboarding-cust-123', { label: 'User-Onboarding-cust-123' });
-```
-
-```go Go
-thread, err := conn.Thread(ctx, "User-Onboarding-cust-123", threadify.ThreadOptions{Label: "User-Onboarding-cust-123"})
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-```python Python
-thread = await connection.thread("User-Onboarding-cust-123", {"label": "User-Onboarding-cust-123"})
-```
-
-</CodeGroup>
-
-### Recording Steps
-
-Always create the step **before** executing business logic:
-
-<CodeGroup>
-
-```javascript JavaScript
-const step = thread.step('order_received');
-
-// Execute business logic
 const order = await receiveOrder();
 
-// Record success with context
-await step.addContext({ orderId: order.id, total: order.total }).success();
+await thread.step('order_received')
+  .addContext({ orderId: order.id, total: order.total })
+  .success();
 ```
-
 ```go Go
-step := thread.Step("order_received")
-
-// Execute business logic
 order, err := receiveOrder()
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 
-// Record success with context
-_, err = step.AddContext(map[string]any{"orderId": order.ID, "total": order.Total}).Success(ctx)
+_, err = thread.Step("order_received").
+    AddContext(map[string]any{"orderId": order.ID, "total": order.Total}).
+    Success(ctx)
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 ```
-
 ```python Python
-step = thread.step("order_received")
-
-# Execute business logic
 order = await receive_order()
 
-# Record success with context
-await step.add_context({"orderId": order.id, "total": order.total}).success()
+await thread.step("order_received").add_context(
+    {"orderId": order.id, "total": order.total}
+).success()
 ```
-
 </CodeGroup>
 
-### Step Methods
+You can create the step before doing the work and report it afterwards. The
+step's duration is measured from when you created it:
 
-| Method | Description |
-|--------|-------------|
-| `.success()` | Mark step as successful |
-| `.success(message)` | Record success with a message or metadata |
-| `.failed(message)` | Record a failed outcome |
-| `.addContext(data)` | Add business context (analytics, debugging) |
+```javascript
+const step = thread.step('payment_taken');
+const payment = await takePayment();
+await step.addContext({ paymentId: payment.id }).success();
+```
 
-<Warning>
-Non-contract threads remain "active" indefinitely unless explicitly ended. [View Closing a Thread](/core-concepts/ending-threads)
-</Warning>
+## Outcomes
 
-An acknowledgement means the event was recorded, not that asynchronous contract
-validation has passed. Use `.success(message, { waitFor: true })` for the exact
-validation result, or call `thread.waitFor(stepName)` before the business operation.
-See [execution waits](/core-concepts/execution-waits).
+| Method | Use when |
+| --- | --- |
+| `.success(message?)` | The operation worked |
+| `.failed(message?)` | The operation ran and failed, for example a declined card |
+| `.error(message?)` | Something went wrong unexpectedly, for example an exception |
 
-### Idempotency
+The optional argument is a message string or an object of details. Put data you
+want rules and metrics to use in `addContext` rather than in the message.
 
-Threadify stores only the first recording for an idempotency key. See
-[Idempotency](/core-concepts/idempotency) when retries need a custom key.
+Each of these returns once the step is recorded. To wait for the contract's
+verdict too, pass `{ waitFor: true }`. See
+[Check before acting](/core-concepts/execution-waits#after-reporting-the-outcome).
+
+## Context
+
+`addContext` attaches key–value data to the step. Values are stored as strings.
+[Contracts](/core-concepts/creating-contracts) check context fields, and
+[entity profile](/core-concepts/entity-profiles) metrics are built from them.
+You can call `addContext` more than once before reporting.
+
+## Retries
+
+If you report the same step name with the same context twice, Threadify keeps
+the first and treats the second as a duplicate. That makes it safe to retry a
+report after a network error. If two genuinely different operations would look
+identical, give them an explicit key. See [Idempotency](/core-concepts/idempotency).
+
+## More detail inside a step
+
+Use [sub-steps](/core-concepts/sub-steps) to record the parts of a larger
+operation.

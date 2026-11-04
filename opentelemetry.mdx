@@ -1,14 +1,17 @@
 ---
 title: OpenTelemetry
-description: Send existing spans to your Engine and choose how they form threads.
+description: Send the spans you already produce to Threadify, and control how they become threads.
 ---
 
-Export spans through OTLP/HTTP or a Threadify SDK exporter. Report each operation
-once; do not duplicate its span with an SDK step report.
+If your services are already instrumented with OpenTelemetry, you don't need to
+call the SDK for every step. Each span becomes a step, and spans from the same
+run become one thread.
 
-## Direct OTLP/HTTP ingestion
+Report each operation once: either as a span or as an SDK step, not both.
 
-Configure a standard exporter with your Engine's URL and an Engine API key:
+## Send spans to your Engine
+
+Point any OTLP exporter at your Engine with an Engine API key:
 
 ```sh
 export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT='https://threadify.example.com/v1/traces'
@@ -16,61 +19,168 @@ export OTEL_EXPORTER_OTLP_TRACES_PROTOCOL='http/protobuf'
 export OTEL_EXPORTER_OTLP_TRACES_HEADERS="X-API-Key=$THREADIFY_API_KEY"
 ```
 
-Set equivalent SDK options if your exporter does not read these variables.
+If your exporter doesn't read these variables, set the same values in its options.
 
-| Requirement | Value |
+| | |
 | --- | --- |
 | Endpoint | `POST /v1/traces` |
-| Format | **OTLP Protobuf**, `Content-Type: application/x-protobuf` |
-| Authentication | `X-API-Key` with an Engine API key |
-| Compression | Optional gzip |
-| Batch limit | 64 MiB compressed and decoded; 10,000 spans |
+| Format | OTLP over HTTP, protobuf (`Content-Type: application/x-protobuf`) |
+| Authentication | `X-API-Key` header with an Engine API key |
+| Compression | gzip, optional |
+| Limits per request | 64 MiB and 10,000 spans |
 
-JSON and gRPC are not accepted here. A separate collector can forward gRPC input
-as OTLP/HTTP. Plan bandwidth allowances also apply.
+JSON and gRPC aren't accepted. If your exporter only speaks gRPC, run an
+OpenTelemetry Collector that receives gRPC and exports OTLP/HTTP to Threadify.
 
-## Threadify SDK exporter
+## Or use the SDK exporter
 
-The JavaScript exporter uses your existing Threadify WebSocket connection:
+The SDKs include a span exporter that sends spans over your existing Threadify
+connection, so you don't need a separate endpoint or key.
 
-```javascript
+<CodeGroup>
+```javascript JavaScript
 import { Threadify } from '@threadify/sdk';
 import { trace } from '@opentelemetry/api';
 import { BasicTracerProvider, BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
-const connection = await Threadify.connect(process.env.THREADIFY_API_KEY, 'processor', {
-  engineUrl: 'https://threadify.example.com'
+const connection = await Threadify.connect(process.env.THREADIFY_API_KEY, 'payment-service', {
+  engineUrl: 'https://threadify.example.com',
 });
+
 const exporter = connection.createSpanExporter({
-  refs: { customer_id: 'customer.id' },
-  filters: ['internal.*'],
-  useWorkflowRunId: true
+  // span attribute → Threadify reference
+  refs: { 'customer.id': 'customer_id' },
 });
+
 const provider = new BasicTracerProvider({
-  spanProcessors: [new BatchSpanProcessor(exporter)]
+  spanProcessors: [new BatchSpanProcessor(exporter)],
 });
 trace.setGlobalTracerProvider(provider);
 ```
+```go Go
+import threadifyotel "github.com/ThreadifyDev/go-sdk/otel"
 
-Flush/shut down the provider before closing the connection when your process exits.
-See [filtering](#filter-trace-data) to exclude spans or remove sensitive fields.
+exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+    // span attribute → Threadify reference
+    RefsMap: map[string]string{"customer.id": "customer_id"},
+})
+```
+```python Python
+# pip install 'threadify-sdk[otel]'
+exporter = connection.create_span_exporter(options={
+    # span attribute → Threadify reference
+    "refs": {"customer.id": "customer_id"},
+})
+```
+</CodeGroup>
 
-For Go, install `github.com/ThreadifyDev/go-sdk/otel` and use
-`threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{...})`.
-Use `RefsMap` for attribute-to-ref mappings; `Refs` is a list of attribute names.
-For Python, install `threadify-sdk[otel]` and use
-`connection.create_span_exporter(options={...})` with your tracer provider.
+`refs` copies span attributes onto the thread as
+[references](/core-concepts/external-references). If the attribute already has
+the name you want, pass a list instead: `refs: ['customer_id']` (`Refs` in Go).
 
-## Filter trace data
+When your process exits, flush and shut down the tracer provider before you
+close the Threadify connection, or the last batch is lost.
 
-### Drop whole spans
+## Attributes Threadify reads
 
-Configure the Threadify SDK exporter:
+| Attribute | Use |
+| --- | --- |
+| `threadify.thread_key` | Your key for the run. Spans with the same key join the same thread. |
+| `threadify.contract` | Contract to follow, as `name` or `name:version` |
+| `threadify.step_name` | Step name to use when the span name doesn't match your contract |
+| `threadify.label` | Human-readable thread label |
+| `threadify.role` | Contract role reporting the step |
+| `threadify.ref.<key>` | Adds a reference, for example `threadify.ref.customer_id` |
+| `threadify.context.<key>` | Adds step context, for example `threadify.context.amount` |
+| `threadify.invocation_id` | Links the span to a [permission grant](/core-concepts/execution-waits#with-opentelemetry) |
+| `threadify.run.complete` | Set to `true` on the span that finishes the run |
+
+```javascript
+span.setAttribute('threadify.thread_key', 'refund:RF-123');
+span.setAttribute('threadify.contract', 'refund_review');
+span.setAttribute('threadify.step_name', 'refund');
+span.setAttribute('threadify.ref.customer_id', 'CUST-001');
+span.setAttribute('threadify.context.amount', 42);
+```
+
+## How spans map to threads
+
+| OpenTelemetry | Threadify |
+| --- | --- |
+| A run (see below) | A thread |
+| A span | A step, named after the span unless `threadify.step_name` is set |
+| A span event | A [sub-step](/core-concepts/sub-steps) |
+| Status `OK`, or `UNSET` with no recorded error | `success` |
+| Status `ERROR` | `failed` |
+
+The span status is the step's outcome. Whether the step followed the contract is
+checked separately; see
+[Recording is not the same as passing](/core-concepts/overview#recording-is-not-the-same-as-passing).
+
+## Choose the thread identity
+
+Threadify decides which thread a span belongs to by looking for these, in order:
+
+1. `threadify.thread_id`: the ID of an existing thread.
+2. `threadify.thread_key`: your own key for the run.
+3. `workflow.run_id`.
+4. The span's trace ID.
+
+So by default, each trace is a thread, unless its spans carry a thread key or
+a workflow run ID. Set the same key on every span in one run, and a new key for
+each run. Keys follow the same [rules as SDK thread keys](/core-concepts/threads#thread-key-rules),
+and the same key resumes the same thread whether you use spans or the SDK.
+
+To follow a contract, start the thread with its contract first, either with
+`threadify.contract` on the first span or by calling
+[`connection.thread(key, { contract })`](/core-concepts/threads#contracted-sessions).
+Later spans can leave `threadify.contract` out. A span that names a different
+contract is rejected.
+
+Threads that were created separately are never merged later.
+
+### Ignore workflow.run_id
+
+If you want one thread per trace even when spans carry `workflow.run_id`, turn
+that step off:
+
+<CodeGroup>
+```text Endpoint
+https://threadify.example.com/v1/traces?use_workflow_run_id=false
+```
+```javascript JavaScript
+const exporter = connection.createSpanExporter({ useWorkflowRunId: false });
+```
+```go Go
+useWorkflowRunID := false
+exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
+    UseWorkflowRunID: &useWorkflowRunID,
+})
+```
+```python Python
+exporter = connection.create_span_exporter(options={"useWorkflowRunId": False})
+```
+</CodeGroup>
+
+`threadify.thread_id` and `threadify.thread_key` still apply.
+
+## Finishing a run
+
+When several traces make up one run, the end of one root span doesn't finish
+the thread. Set `threadify.run.complete: true` on the span that ends the run. A
+thread with a contract finishes when its terminal step passes instead.
+
+Once a thread has finished it rejects further spans, including late ones, so
+don't mark a run complete until all its spans have been exported.
+
+## Drop spans you don't need
+
+### In the SDK exporter
 
 <CodeGroup>
 ```javascript JavaScript
 const exporter = connection.createSpanExporter({
-  filters: ['healthcheck', 'internal.*']
+  filters: ['healthcheck', 'internal.*'],
 });
 ```
 ```go Go
@@ -80,38 +190,38 @@ exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOption
 ```
 ```python Python
 exporter = connection.create_span_exporter(options={
-    "filters": ["healthcheck", "internal.*"]
+    "filters": ["healthcheck", "internal.*"],
 })
 ```
 </CodeGroup>
 
-- `healthcheck` drops that exact span name.
-- `internal.*` drops names beginning with `internal.`.
-- Matching is case-sensitive, against the original span name, before `threadify.step_name` mapping.
-- Only a trailing `*` is supported; these are not regex patterns.
+- `healthcheck` drops spans with exactly that name.
+- `internal.*` drops spans whose name starts with `internal.`. A trailing `*` is
+  the only wildcard; these aren't regular expressions.
+- Matching is case-sensitive and uses the original span name.
+- Each span is checked on its own. Dropping a parent doesn't drop its children.
 
-Each span is filtered independently. Dropping a parent does not drop its children.
-Keep steps required by contracts and spans carrying the run's completion signal.
+Don't drop spans your contract needs, or the span that completes the run.
 
-### Filter every OTLP exporter at the Engine
+### At the Engine
 
-Open **Settings → Trace ingestion**. Enter one exact name or trailing-`*` prefix
-per line, preview sample names, then save. An administrator must save changes.
-Empty rules keep all spans.
+To filter spans from every exporter that posts to `/v1/traces`, open
+**Settings → Trace ingestion**, enter one name or `prefix*` per line, preview
+against sample span names, and save. Only admins can save rules. With no rules,
+every span is kept.
 
-These rules apply only to `POST /v1/traces`, before threads or steps are created.
-Threadify SDK WebSocket events and SDK span exporters are unaffected. Rules match
-original span names, before `threadify.step_name` mapping.
+These rules apply only to `/v1/traces`. They don't affect SDK steps or the SDK
+exporter.
 
-With the CLI:
+From the CLI:
 
 ```sh
 threadify-cli ingestion-rules get > rules.json
-# Edit filters; preserve revision from the response.
+# Edit the filters. Keep the "revision" field as it is.
 threadify-cli ingestion-rules set --file rules.json
 ```
 
-Preview without saving using `preview.yaml`:
+To try rules without saving them, write a `preview.yaml`:
 
 ```yaml
 filters: [healthcheck, "internal.*"]
@@ -122,121 +232,29 @@ span_names: [healthcheck, internal.cache, refund]
 threadify-cli ingestion-rules preview --file preview.yaml
 ```
 
-- Saves apply to the next batch across replicas sharing Valkey. In-flight batches
-  can finish under their previous rules; existing history is unchanged.
-- Rules and counts persist in Valkey without a TTL. Preserve its data volume.
-- Stale saves return `409`; reload and review before retrying.
-- Unavailable rules storage returns `503` instead of bypassing filtering.
-- Filtered exports succeed, including batches with no remaining spans. The
-  `X-Threadify-Filtered-Spans` response header reports each batch's drop count.
-- The settings page shows cumulative evaluated and dropped delivery attempts,
-  including retries. Preview does not change counts. Counter-write failures are
-  logged, so these are diagnostic counts, not billing totals.
-- Received bytes still count toward input bandwidth. Keep contract-required steps
-  and run completion signals in your retained spans.
+What to expect:
 
-### Remove fields from retained spans
+- New rules apply from the next request. History that's already stored doesn't
+  change.
+- If someone else saved rules after you loaded them, your save fails with `409`.
+  Load them again and reapply your change.
+- A request whose spans are all dropped still succeeds. The
+  `X-Threadify-Filtered-Spans` response header says how many were dropped.
+- The settings page shows how many spans were checked and dropped. Retries are
+  counted again, so treat these numbers as a guide.
+- Dropped spans still count toward your [input bandwidth](/plans-and-limits).
 
-Span filters do not redact attributes, prompts, payloads, or event data. `refs`
-maps attributes to references; it is not an attribute allowlist.
+### Remove sensitive fields
 
-Omit unwanted values in your instrumentation or remove them before export.
-Threadify has no built-in field-redaction option. Check span and resource
-attributes, events, and status messages; preserve fields needed by contracts.
+Filters drop whole spans. They don't remove attributes, events or messages from
+the spans you keep, and Threadify doesn't redact fields for you. Leave sensitive
+values out of your instrumentation, or remove them in your Collector before
+they're exported.
 
-## Choose the thread identity
+## Recording vs. stopping
 
-The correlation precedence is:
-
-1. `threadify.thread_id`: an existing internal Threadify thread ID.
-2. `threadify.thread_key`: your application-owned session or process key.
-3. `workflow.run_id`: used by default when no explicit key is supplied.
-4. OpenTelemetry trace ID: the fallback when none of the above applies.
-
-The key uses the same Engine resolver as `connection.thread(threadKey, options?)`.
-The stored contract and pinned version are loaded on resume, so subsequent spans
-can omit `threadify.contract`. A different supplied contract is rejected.
-Initialize contracted sessions before reporting spans; a new key without a
-contract creates a free-form thread.
-
-A shared thread key combines traces into one thread. Use a unique value per
-run, consistently set on its spans or dedicated resource. Thread keys must be
-nonblank strings of at most 1024 UTF-8 bytes after trimming.
-
-Existing threads are not merged retroactively. Conflicting identities or
-contracts are rejected.
-
-### Keep one trace per thread
-
-Disable the workflow-run fallback on the direct traces URL:
-
-```text
-https://threadify.example.com/v1/traces?use_workflow_run_id=false
-```
-
-Or on the exporter:
-
-<CodeGroup>
-```javascript JavaScript
-const exporter = connection.createSpanExporter({ useWorkflowRunId: false });
-```
-```go Go
-useWorkflow := false
-exporter := threadifyotel.NewSpanExporter(conn, threadifyotel.SpanExporterOptions{
-    UseWorkflowRunID: &useWorkflow,
-})
-```
-```python Python
-exporter = connection.create_span_exporter(options={"useWorkflowRunId": False})
-```
-</CodeGroup>
-
-This only disables `workflow.run_id`; explicit `threadify.thread_id` and
-`threadify.thread_key` still take precedence. Omit those too for trace-ID grouping.
-
-## Mapping operations
-
-| OpenTelemetry data | Threadify use |
-| --- | --- |
-| Correlated run or trace | Thread |
-| Span | Step; its span name is used unless overridden |
-| Span event | Sub-step |
-| `OK` status | Successful outcome |
-| `ERROR` status | Failed outcome |
-| `UNSET` status | Successful outcome when no error was recorded |
-
-Outcome is not contract compliance. A successful span can still violate a rule.
-
-| Attribute | Purpose |
-| --- | --- |
-| `threadify.thread_key` | Application session/process identity, shared with the JavaScript, Python, and Go SDKs |
-| `threadify.contract` | Contract name, optionally with `:version` |
-| `threadify.step_name` | Stable contract step name when the span name varies |
-| `threadify.label` | Human-readable thread label |
-| `threadify.role` | Contract party for Engine OTLP ingestion |
-| `threadify.ref.customer_id` | Attach a business reference |
-| `threadify.context.amount` | Attach step content for a rule |
-| `threadify.invocation_id` | Correlate a span with an existing permission grant |
-| `threadify.run.complete` | Explicit completion signal for a correlated run |
-
-```javascript
-span.setAttribute('threadify.thread_key', 'refund-run-2026-001');
-span.setAttribute('threadify.contract', 'refund_review');
-span.setAttribute('threadify.step_name', 'refund');
-span.setAttribute('threadify.ref.customer_id', 'CUST-001');
-span.setAttribute('threadify.context.amount', 42);
-```
-
-For a shared run, ending one root span does not necessarily finish the whole
-thread. Signal final completion with `threadify.run.complete: true`; contracted
-threads complete through their contract rules. Completion waits for all accepted
-spans in the current export. Terminal threads reject further writes, including
-delayed spans; keep the thread open until all session work has arrived. Preserve
-source trace/span IDs when investigating retries.
-
-## Observe or enforce
-
-Passive export records operations after they happen. To prevent an agent tool
-call or backend action, use [an SDK execution wait](/core-concepts/execution-waits)
-before running it, then let the span report its outcome with the invocation ID.
-Do not also report the same outcome through `thread.step()` unless it is a distinct event.
+Exported spans arrive after the operation has already run, so they can flag a
+problem but can't prevent it. To stop an agent's tool call or a backend action
+the contract doesn't allow,
+[get permission with the SDK first](/core-concepts/execution-waits), then let the
+span report the outcome.

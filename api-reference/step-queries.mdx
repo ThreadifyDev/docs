@@ -1,36 +1,18 @@
 ---
-title: 'Step Queries'
-description: 'Query step execution history, sub-steps, and performance data'
+title: Step queries
+description: Read a thread's steps, every attempt at a step, and its sub-steps.
 ---
 
-## Query Step History
-
-<CodeGroup>
-
-```graphql GraphQL
-# Get step execution history
-query {
-  stepHistory(
-    threadId: "thread-123"
-    stepName: "payment_processed"
-    limit: 100
-  ) {
-    attempt
-    timestamp
-    status
-    duration
-    actor
-  }
-}
-```
+## A thread's steps
 
 ```graphql
-# Get step with sub-steps
 query {
-  thread(id: "thread-123") {
-    steps(stepName: "payment_processing") {
+  thread(id: "THREAD_ID") {
+    steps(stepName: "payment_processed") {
       stepName
       status
+      retryCount
+      latestContext
       subSteps {
         name
         status
@@ -41,65 +23,65 @@ query {
 }
 ```
 
-</CodeGroup>
+`steps` accepts `stepName`, `idempotencyKey` and `status`, all optional.
 
-## Query Parameters
+| Field | Meaning |
+| --- | --- |
+| `stepName` | The step's name |
+| `idempotencyKey` | The key the report was recorded under |
+| `status` | Latest outcome: `success`, `failed` or `error` |
+| `retryCount` | Number of retries |
+| `firstSeenAt`, `lastUpdatedAt` | ISO 8601 timestamps |
+| `startedAt`, `finishedAt` | When the latest attempt ran |
+| `previousStep` | The step recorded before it |
+| `actor`, `actorService` | Who reported the latest attempt |
+| `latestContext` | The latest attempt's context, as JSON |
+| `history(...)` | Every attempt (below) |
+| `subSteps` | Its sub-steps |
+| `hash`, `prevHash`, `verified` | [Integrity](/api-reference/integrity-verification) |
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `threadId` | String! | Thread ID (required) |
-| `stepName` | String! | Step name (required) |
-| `idempotencyKey` | String | Filter by idempotency key |
-| `limit` | Int | Max results (default: 100, max: 1000) |
-| `offset` | Int | Pagination offset |
-| `startAt` | String | ISO timestamp - history after |
-| `endAt` | String | ISO timestamp - history before |
-| `activityType` | String | Filter by activity type |
-| `actor` | String | Filter by actor ID |
+## Every attempt at a step
 
-## Step Fields
+```graphql
+query {
+  stepHistory(threadId: "THREAD_ID", stepName: "payment_processed", limit: 100) {
+    attempt
+    timestamp
+    status
+    duration
+    actor
+    error
+  }
+}
+```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `threadId` | String! | Thread ID |
-| `stepName` | String! | Step name |
-| `idempotencyKey` | String! | Unique step identifier |
-| `status` | String! | Current status |
-| `retryCount` | Int! | Number of retry attempts |
-| `firstSeenAt` | String! | First execution timestamp |
-| `lastUpdatedAt` | String! | Last update timestamp |
-| `latestStepID` | String! | Latest step ID |
-| `previousStep` | String | Previous step name |
-| `actor` | String | Actor who executed step |
-| `actorService` | String | Service that executed step |
-| `latestContext` | String | Latest context data (JSON) |
-| `hash` | String | Cryptographic hash |
-| `prevHash` | String | Previous step hash |
-| `verified` | Boolean | Hash chain verification status |
+| Argument | Meaning |
+| --- | --- |
+| `threadId`, `stepName` | Required |
+| `idempotencyKey` | One particular report |
+| `startAt`, `endAt` | ISO 8601 timestamps |
+| `activityType`, `actor` | Filters |
+| `limit` | Default 100, maximum 1,000 |
+| `offset` | Results to skip |
 
-## History Fields
+| Field | Meaning |
+| --- | --- |
+| `attempt` | Attempt number |
+| `timestamp` | When it was recorded |
+| `status` | Outcome |
+| `duration` | Milliseconds |
+| `startedAt`, `finishedAt` | ISO 8601 timestamps |
+| `context` | Context, as JSON |
+| `error` | Error message, if any |
+| `actor`, `actorService` | Who reported it |
+| `hash`, `prevHash` | Integrity chain values |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `attempt` | Int! | Attempt number |
-| `timestamp` | String! | Execution timestamp |
-| `status` | String! | Step status |
-| `context` | String! | Context data (JSON) |
-| `duration` | Int! | Execution duration (ms) |
-| `startedAt` | String | Start timestamp |
-| `finishedAt` | String | Finish timestamp |
-| `error` | String | Error message (if failed) |
-| `actor` | String! | Actor ID |
-| `actorService` | String! | Service name |
-| `hash` | String | Cryptographic hash |
-| `prevHash` | String | Previous hash |
+## Sub-step fields
 
-## Sub-step Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | ID! | Unique sub-step ID |
-| `name` | String! | Sub-step name |
-| `status` | String! | Sub-step status |
-| `payload` | JSON | Sub-step data |
-| `recordedAt` | String! | Recording timestamp |
+| Field | Meaning |
+| --- | --- |
+| `id` | Sub-step ID |
+| `name` | Name |
+| `status` | `success` or `failed` |
+| `payload` | Data, as JSON |
+| `recordedAt` | ISO 8601 timestamp |

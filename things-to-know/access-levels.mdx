@@ -1,30 +1,40 @@
 ---
-title: Access levels
-description: Distinguish Engine membership, thread permissions, and contract roles.
+title: Roles and access
+description: Engine roles, thread access levels and contract roles, and how they differ.
 ---
 
-| Setting | Controls |
-| --- | --- |
-| Engine role (`admin`, `member`, `viewer`) | Dashboard and management access |
-| Thread access level | Operations and notifications within a thread |
-| Contract role, such as `processor` | Which party may report a contract step |
+Three separate settings control who can do what:
 
-## Thread permissions
-
-The current bundled runtime permissions are:
-
-| Access level | Operations | Notifications |
+| Setting | Controls | Set by |
 | --- | --- | --- |
-| Owner | Read, write, invite, end | All |
-| Participant | Read, write, end | Own step outcomes and validation results |
-| Observer | Read and write | Critical, timeout, and retry-limit violations |
-| External | Read own data; write | Own step outcomes |
+| Engine role: `admin`, `member`, `viewer` | What a person can do in the dashboard and management APIs | Inviting someone from **Team** |
+| Thread access level | What a service can do on one thread, and which notifications it receives | Creating, joining or [being invited to](/core-concepts/thread-collaboration/inviting-parties) a thread |
+| Contract role, such as `processor` | Which party may report each step | The `owner must be` clauses in a [contract](/core-concepts/creating-contracts) |
 
-**Observer currently includes write permission.** Do not treat that name as a
-read-only guarantee. See the [bundled role definitions](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/shared/rbac/roles.json).
+## Engine roles
 
-Choose `accessLevel` when [inviting a party](/core-concepts/thread-collaboration/inviting-parties).
-Its `role` separately identifies the contract party. Direct joins use participant
-access; invitation joins use the granted access level.
+| Role | Can |
+| --- | --- |
+| `admin` | Everything below, plus invite and remove members and delete contracts |
+| `member` | Create and edit contracts, entity profile types, API keys and service accounts, and run queries |
+| `viewer` | Read contracts, profile types and members, and run read-only queries |
 
-For Engine users and API keys, see [authentication](/authentication).
+## Thread access levels
+
+| Level | Can | Notifications |
+| --- | --- | --- |
+| Owner | Read, write, invite others, close the thread | All |
+| Participant | Read, write, close the thread | Outcomes and validation results for its own steps |
+| Observer | Read only | Critical, timeout and retry-limit violations |
+| External | Read its own data, write | Outcomes of its own steps |
+
+The service that creates a thread is its owner. A service that
+[joins by ID](/core-concepts/thread-collaboration/joining-threads) is a
+participant. A party that joins with an invitation gets the level the invitation
+granted.
+
+The access level and the contract role are independent: a participant with the
+`processor` role can report `processor` steps; the same participant with a
+different role can't.
+
+For users and API keys, see [Authentication](/authentication).

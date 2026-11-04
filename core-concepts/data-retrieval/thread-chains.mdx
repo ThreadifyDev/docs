@@ -1,64 +1,63 @@
 ---
-title: 'Thread Chains'
-description: 'Query parent-child thread relationships'
+title: Linked threads
+description: Link related threads, such as a parent order and its shipments, and read them as a chain.
 ---
 
-Thread chains trace linked workflows from any starting thread down through its
-descendants.
+Keep each thread focused on one run, and link threads that belong together, for
+example an order and the shipment threads it starts.
 
-## Usage
+## Link a thread
 
-<Tabs>
-<Tab title="JavaScript">
-```javascript
-const chain = await threadify.getThreadChain(startThreadId, maxDepth);
+Call `linkThread` on the child, passing the parent's ID:
+
+<CodeGroup>
+```javascript JavaScript
+const shipment = await connection.thread(`shipment:${shipmentId}`);
+await shipment.linkThread(order.id, 'parent');
 ```
-</Tab>
-<Tab title="Go">
-```go
-chain, err := conn.GetThreadChain(ctx, startThreadID, 3)
+```go Go
+shipment, err := conn.Thread(ctx, "shipment:"+shipmentID)
 if err != nil {
-    log.Fatal(err)
+    return err
 }
+err = shipment.LinkThread(ctx, order.ThreadID, "parent")
+```
+```python Python
+shipment = await connection.thread(f"shipment:{shipment_id}")
+await shipment.link_thread(order.thread_id, "parent")
+```
+</CodeGroup>
 
+The second argument names the relationship. It defaults to `parent`; any short
+label such as `followup` or `related` works.
+
+## Read a chain
+
+Start from any thread and get it plus everything linked below it:
+
+<CodeGroup>
+```javascript JavaScript
+const chain = await connection.getThreadChain(order.id, 3);
+```
+```go Go
+chain, err := conn.GetThreadChain(ctx, order.ThreadID, 3)
+if err != nil {
+    return err
+}
 for _, t := range chain {
-    fmt.Println("Thread ID:", t.ID)
+    fmt.Println(t.ID, t.Status)
 }
 ```
-</Tab>
-<Tab title="Python">
-```python
-chain = await conn.get_thread_chain(start_thread_id, max_depth=3)
-
+```python Python
+chain = await connection.get_thread_chain(order.thread_id, max_depth=3)
 for t in chain:
-    print("Thread ID:", t.id)
+    print(t.id, t.status)
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-## Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `startThreadId` | string | required | Thread ID to start from (any thread in chain) |
-| `maxDepth` | number | 3 | Maximum depth to traverse downward |
-
-## Returns
-
-Array of `ArchivedThread` objects ordered from starting thread to descendants.
-
-## Behavior
-
-- **Starting Point**: Works from any thread (root, middle, or leaf)
-- **Direction**: Traverses downward only (parent → children)
-- **Cycle Prevention**: Automatically detects circular references
-- **Archival delay**: Recent relationships appear after asynchronous persistence
-
-## Relationship Types
-
-| Type | Description |
-|------|-------------|
-| `parent` | Parent thread that spawned this workflow |
-| `child` | Child thread for sub-processes |
-| `related` | Parallel or dependent workflow |
-| `followup` | Continuation of previous thread |
+- The result starts with the thread you passed, followed by linked threads,
+  nearest first.
+- The second argument is how many levels to follow. The default is 3.
+- Chains only go downward, from parent to children.
+- Loops are detected and followed only once.
+- New links can take a few seconds to appear.

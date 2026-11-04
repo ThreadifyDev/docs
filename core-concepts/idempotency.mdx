@@ -1,82 +1,68 @@
 ---
 title: Idempotency
-description: Ensuring consistent step recordings in Threadify
+description: Make step reports safe to retry without recording a step twice.
 ---
 
-Idempotency prevents retries from recording the same step more than once.
+Networks fail, and retries happen. Threadify makes sure a retried report doesn't
+record the same step twice.
 
-### Idempotency Approaches
+## How duplicates are detected
 
-| Approach | When to Use | Key Generation |
-|----------|-------------|----------------|
-| **Auto-generated** (default) | Context uniquely identifies operation | Hash of `stepName + context` |
-| **Manual** (`.idempotencyKey()`) | External system IDs, user-initiated retries, cross-service deduplication | Custom key (e.g., payment providers payment ID, request ID) |
+Each report has an idempotency key. If Threadify has already recorded a report
+with that key on the thread, it keeps the first one and treats the new one as a
+duplicate.
+
+By default the key is derived from the step name and its context. Two reports of
+`validate_cart` with the same context are the same report.
+
+## Choose the key yourself
+
+When two genuinely different operations would have the same name and context,
+or when you want retries of one operation to match even if the context changes,
+set the key explicitly. A good key is an ID from the system that did the work:
 
 <CodeGroup>
-
 ```javascript JavaScript
-// Auto-generated (default)
-await thread.step('validate_cart')
-  .addContext({ items: '3', total: '99.99' })
-  .success();
+const charge = await payments.charges.create({ amount: 9999 });
 
-// Manual key with external ID
-const payment = await payments.charges.create({ amount: 9999 });
 await thread.step('charge_payment')
-  .idempotencyKey(payment.id)
+  .idempotencyKey(charge.id)
   .addContext({ amount: '99.99' })
   .success();
 ```
-
 ```go Go
-// Auto-generated (default)
-_, err := thread.Step("validate_cart").
-    AddContext(map[string]any{"items": "3", "total": "99.99"}).
-    Success(ctx)
+charge, err := payments.Charges.Create(&payments.ChargeParams{Amount: 9999})
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 
-// Manual key with external ID
-payment, err := payments.Charges.Create(&payments.ChargeParams{Amount: 9999})
-if err != nil {
-    log.Fatal(err)
-}
 _, err = thread.Step("charge_payment").
-    IdempotencyKey(payment.ID).
+    IdempotencyKey(charge.ID).
     AddContext(map[string]any{"amount": "99.99"}).
     Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
 ```
-
 ```python Python
-# Auto-generated (default)
-await (
-    thread.step("validate_cart")
-    .add_context({"items": "3", "total": "99.99"})
-    .success()
-)
+charge = await payments.charges.create(amount=9999)
 
-# Manual key with external ID
-payment = await payments.charges.create(amount=9999)
 await (
     thread.step("charge_payment")
-    .idempotency_key(payment.id)
+    .idempotency_key(charge.id)
     .add_context({"amount": "99.99"})
     .success()
 )
 ```
-
 </CodeGroup>
 
-An execution grant supplies an invocation ID for its report, distinguishing
-separate permitted attempts. Outside that flow, use an explicit key when distinct
-operations have identical step names and context. Deduplication of reports does
-not make the external payment or tool call idempotent.
+Never reuse a key for a different operation; the second one would be dropped.
 
-### Best Practices
+## With permission grants
 
-- Use a stable business identifier, such as an order or payment ID, for retries.
-- Never reuse a key for a different operation.
+A step reported after [`waitFor`](/core-concepts/execution-waits) is tied to its
+grant, so each permitted attempt is recorded separately even if the name and
+context are the same.
+
+## What this doesn't cover
+
+Idempotency stops Threadify recording a step twice. It doesn't stop your code
+from charging a card twice. Use your payment provider's or tool's own
+idempotency key for the action itself.

@@ -1,63 +1,57 @@
 ---
-title: 'Authentication'
-description: 'Sign in to Threadify and create credentials for the CLI and integrations.'
+title: Authentication
+description: Sign in to the dashboard, invite your team, and create API keys.
 ---
 
-## Account, license, and API key
+There are three credentials, each with one job:
 
-| Credential | Purpose |
+| Credential | Used for |
 | --- | --- |
-| Registry account | Signup, email verification, and licensing |
-| License key | Configure and verify the Engine installation |
-| Engine API key | Authenticate SDKs, OTLP, MCP, and automation |
+| Threadify account | Signing up and managing your license |
+| License key | Starting your Engine. It goes in `config.yaml` and nowhere else. |
+| Engine API key | Everything that talks to your Engine: SDKs, OpenTelemetry, MCP, the CLI and scripts |
 
-Manage users and API keys on your Engine. A Registry account does not grant
-access to other companies' Engines. Direct HTTP integrations use `X-API-Key`.
+Users and API keys belong to your Engine. Your Threadify account doesn't give
+anyone access to another company's Engine.
 
 ## Sign in
 
-Open your Threadify dashboard and choose a sign-in method:
+Open your Engine's address in a browser and choose:
 
-- **Continue with email or SSO** to sign in with your account.
-- **Sign in with API key** to create a browser session with that key's permissions.
+- **Continue with email or SSO** to sign in with your Threadify account, or
+- **Sign in with API key** to open a session with that key's permissions.
 
-The license owner can sign in immediately. Everyone else must first be invited
-from **Team** with an `admin`, `member` or `viewer` role. Share the sign-in link
-shown by Threadify; invitation emails are not sent automatically.
+The license owner can sign in straight away. Everyone else needs an invitation:
+an admin opens **Team**, chooses a role (`admin`, `member` or `viewer`), and
+sends the person the sign-in link Threadify shows. Threadify doesn't email
+invitations for you.
 
-Browser sessions expire after eight hours. Signing out, suspending the user or
-revoking the source API key invalidates the session.
+Browser sessions last eight hours. Signing out, suspending the user, or revoking
+the API key a session was opened with ends it immediately.
 
-## API keys
+## Create an API key
 
-Open **Developer → API Keys** to create credentials for SDKs, OpenTelemetry and automation.
-Use a service account with only the permissions the integration needs.
+Open **Developer → API Keys**. For an integration, create a service account and
+give it only the permissions it needs. Send the key in the `X-API-Key` header
+when you call the Engine directly.
 
-For the CLI, run:
+To use the CLI, sign in with your browser instead of copying a key:
 
 ```bash
-threadify-cli login
+threadify-cli login --api-url https://threadify.example.com
 ```
 
-See the [CLI guide](/cli) for headless login and environment-variable setup.
+See the [CLI guide](/cli) for headless servers and CI.
 
-## Self-host configuration
+## Browser sign-in behind a proxy
 
-Set your license key and public dashboard address in `config.yaml`:
+Set `server.browser_origin` to the exact address people open, and
+`server.public_url` to the address SDKs should use. These are usually the same:
 
 ```yaml
-registry:
-  license_key: "$THREADIFY_LICENSE_KEY"
-  browser_origin: "https://threadify.example.com"
-
 server:
   public_url: "https://threadify.example.com"
+  browser_origin: "https://threadify.example.com"
 ```
 
-Point your HTTPS reverse proxy at the Engine port. The dashboard and API are
-served from that address; host the dashboard at the root of the hostname.
-`browser_origin` must match the origin you open in the browser. For local use,
-keep the hostname consistent: choose either `localhost` or `127.0.0.1`.
-
-Administrators can override `server.public_url` in **Settings → Engine → Engine
-URL**. UI changes apply immediately; config changes require a restart.
+See [Put it behind HTTPS](/self-hosting#put-it-behind-https).

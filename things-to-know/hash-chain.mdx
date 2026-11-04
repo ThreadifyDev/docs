@@ -1,12 +1,11 @@
 ---
-title: Hash chain
-description: Verify the integrity of the history Threadify recorded.
+title: Integrity verification
+description: Check that a thread's recorded history hasn't been changed.
 ---
 
-Threadify links recorded activity using hashes and a versioned HMAC secret.
-Verification checks whether the stored chain is internally consistent and has
-been altered. Keep your configured hash-chain secrets across restarts and retain
-old versions after rotation so older history remains verifiable.
+Threadify signs each recorded event and links it to the one before, forming a
+chain. If any stored event is changed, removed or reordered, verification fails
+at that point.
 
 ## Verify a thread
 
@@ -14,16 +13,24 @@ old versions after rotation so older history remains verifiable.
 threadify-cli threads verify --id THREAD_ID
 ```
 
-The command prints integrity results and exits nonzero when verification fails.
-You can also use the [GraphQL integrity queries](/api-reference/integrity-verification)
-to inspect a whole thread or one recorded step.
+The command prints the result and exits with a non-zero status if verification
+fails. To verify from code, use the
+[integrity queries](/api-reference/integrity-verification).
 
-## What the result means
+## What a passing check means
 
-Integrity is different from correctness. An intact chain can contain a failed
-operation or a contract violation. It also cannot prove that an unrecorded
-external action never happened. Use contract validation for rule compliance and
-the chain for integrity of the evidence Threadify actually received.
+It means the history is exactly what Threadify received. It doesn't mean the run
+was correct: an intact chain can contain a failed step or a contract violation.
+And it can't prove that something your systems did but never reported didn't
+happen. Use [contracts](/core-concepts/creating-contracts) to check behaviour,
+and the chain to trust the record.
 
-Archived views can lag behind recent events. Check persistence health and wait
-for outstanding archival work when investigating incomplete recent history.
+## Keep your signing secrets
+
+The chain is signed with the hash-chain secret in your Engine config. Keep every
+version you've used. If you rotate to a new secret, history signed with the old
+one can only be verified while the old secret is still configured. See
+[Keep your data](/self-hosting#keep-your-data).
+
+Very recent events may not be included until they've been saved, which usually
+takes a few seconds.

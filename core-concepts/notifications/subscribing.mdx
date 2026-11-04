@@ -1,150 +1,105 @@
 ---
-title: 'Subscribing to Events'
-description: 'Subscribe to workflow events and validation alerts'
+title: Subscribe to events
+description: React in your code when steps succeed or fail, rules are broken, or threads finish.
 ---
 
-### Flow Control
-
-Control how many notifications can be pending at once:
-
-<CodeGroup>
-
-```javascript JavaScript
-const threadify = await Threadify.connect('your-api-key', 'my-service', {
-  engineUrl: 'http://localhost:8081',
-  maxInFlight: 50  // Default: 10, Max: 100
-});
-```
-
-```go Go
-conn, err := threadify.Connect(ctx, "your-api-key", 
-    threadify.WithServiceName("my-service"),
-    threadify.WithEngineURL("http://localhost:8081"),
-    threadify.WithMaxInFlight(50), // Default: 10, Max: 100
-)
-if err != nil {
-    log.Fatal(err)
-}
-```
-
-```python Python
-from threadify import Threadify
-
-connection = await Threadify.connect(
-    "your-api-key",
-    service_name="my-service",
-    engine_url="http://localhost:8081",
-    max_in_flight=50,  # Default: 10, Max: 100
-)
-```
-
-</CodeGroup>
-
-Notifications use explicit acknowledgements and can be redelivered. Make handlers
-idempotent, especially when they trigger external actions. Scaling consumers does
-not provide exactly-once execution of your application code.
-
-### Event Patterns
-
-| Pattern | Triggers On |
-|---------|-------------|
-| `thread.cancelled` | Thread cancelled |
-| `thread.completed` | Thread completed |
-| `step.success` | Step succeeded |
-| `step.failed` | Step failed |
-| `rule.violated` | Contract violation |
-| `rule.passed` | Contract validation passed |
-| `step.*` | Any step event (wildcard) |
-| `rule.*` | Any validation (wildcard) |
-
-### Subscribing
+Subscribe on a connection to get notified about threads your service takes
+part in. Each notification must be [acknowledged](/core-concepts/notifications/handling).
 
 <CodeGroup>
-
 ```javascript JavaScript
-// Thread events (2 parameters)
-threadify.on('thread.completed', (notification) => {
-  console.log('Thread completed');
+// Thread events: event and handler
+connection.subscribe('thread.completed', (notification) => {
+  console.log('Thread completed', notification.threadId);
   notification.ack();
 });
 
-// Step events (3 parameters: event, stepName, handler)
-threadify.on('step.failed', 'payment_processed', (notification) => {
+// Step events: event, step name and handler
+connection.subscribe('step.failed', 'payment_processed', (notification) => {
   console.error('Payment failed:', notification.message);
   notification.ack();
 });
 
-// Contract-specific (use @ syntax)
-threadify.on('rule.violated', 'product_delivery@order_placed', (notification) => {
-  console.error('Contract violation:', notification.message);
+// Only for one contract: contract@step
+connection.subscribe('rule.violated', 'refund_review@refund', (notification) => {
+  console.error('Rule broken:', notification.message);
   notification.ack();
 });
 ```
-
 ```go Go
-// Thread events
+// Thread events: pass "" as the step name
 err := conn.Subscribe(ctx, "thread.completed", "", func(n *threadify.Notification) {
-    fmt.Println("Thread completed")
+    fmt.Println("Thread completed", n.ThreadID)
     n.Ack()
 })
-if err != nil {
-    log.Fatal(err)
-}
 
-// Step events (specify step name)
+// Step events
 err = conn.Subscribe(ctx, "step.failed", "payment_processed", func(n *threadify.Notification) {
-    fmt.Printf("Payment failed: %s\n", n.Message)
+    fmt.Println("Payment failed:", n.Message)
     n.Ack()
 })
-if err != nil {
-    log.Fatal(err)
-}
 
-// Contract-specific (use @ syntax)
-err = conn.Subscribe(ctx, "rule.violated", "product_delivery@order_placed", func(n *threadify.Notification) {
-    fmt.Printf("Contract violation: %s\n", n.Message)
+// Only for one contract: contract@step
+err = conn.Subscribe(ctx, "rule.violated", "refund_review@refund", func(n *threadify.Notification) {
+    fmt.Println("Rule broken:", n.Message)
     n.Ack()
 })
-if err != nil {
-    log.Fatal(err)
-}
 ```
-
 ```python Python
-# Thread events
-def on_thread_completed(notification):
-    print("Thread completed")
+def on_completed(notification):
+    print("Thread completed", notification.thread_id)
     notification.ack()
 
-connection.subscribe("thread.completed", on_thread_completed)
-
-# Step events (specify step name)
 def on_payment_failed(notification):
-    print(f"Payment failed: {notification.message}")
+    print("Payment failed:", notification.message)
     notification.ack()
 
+def on_rule_broken(notification):
+    print("Rule broken:", notification.message)
+    notification.ack()
+
+# Thread events: event and handler
+connection.subscribe("thread.completed", on_completed)
+# Step events: event, step name and handler
 connection.subscribe("step.failed", "payment_processed", on_payment_failed)
-
-# Contract-specific (use @ syntax)
-def on_contract_violation(notification):
-    print(f"Contract violation: {notification.message}")
-    notification.ack()
-
-connection.subscribe("rule.violated", "product_delivery@order_placed", on_contract_violation)
+# Only for one contract: contract@step
+connection.subscribe("rule.violated", "refund_review@refund", on_rule_broken)
 ```
-
 </CodeGroup>
 
-### Notification Properties
+## Events
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `notificationId` | string | Unique notification ID |
-| `threadId` | string | Thread ID |
-| `stepName` | string | Step name |
-| `stepStatus` | string | `success` or `failed` |
-| `status` | string | `passed` or `violated` |
-| `severity` | string | `info`, `warning`, `critical` |
-| `message` | string | Human-readable message |
-| `timestamp` | string | ISO timestamp |
-| `ack()` | method | Acknowledge notification |
+| Event | When |
+| --- | --- |
+| `thread.completed` | A thread was completed |
+| `thread.cancelled` | A thread was cancelled |
+| `step.success` | A step succeeded |
+| `step.failed` | A step failed |
+| `rule.passed` | A step passed its contract check |
+| `rule.violated` | A step broke its contract |
+| `step.*`, `rule.*` | Any step event, or any contract check |
+
+Which notifications you receive also depends on your
+[access level](/things-to-know/access-levels#thread-access-levels) on each thread.
+
+## Notification fields
+
+| Field | Meaning |
+| --- | --- |
+| `notificationId` | Unique ID. Use it to ignore repeats. |
+| `threadId`, `stepName` | Where it happened |
+| `stepStatus` | `success`, `failed` or `error` |
+| `status` | `passed` or `violated`, for `rule.*` events |
+| `severity` | `critical`, `major`, `minor`, `warning` or `info` |
+| `message` | A readable description |
+| `timestamp` | When it happened |
+| `ack()` | Acknowledge it |
+
+In Python the fields use snake case (`thread_id`, `step_name`). In Go they're
+struct fields (`ThreadID`, `StepName`).
+
+## How many at once
+
+By default, up to 10 notifications can be waiting for your acknowledgement. When
+that many are outstanding, the Engine waits before sending more. Raise it with
+`maxInFlight` (up to 100) when you [connect](/core-concepts/connecting#options).

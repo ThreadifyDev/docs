@@ -1,19 +1,39 @@
 ---
-title: Core concepts
-description: The pieces of execution intelligence and how they fit together.
+title: How Threadify works
+description: Threads, steps, contracts and waits, and how they fit together.
 ---
 
-| Concept | Responsibility |
+| Concept | What it is |
 | --- | --- |
-| [Thread](/core-concepts/threads) | One execution, optionally governed by a contract version |
-| [Step](/core-concepts/tracking-workflows) | A recorded operation, outcome, and context |
-| [Contract](/core-concepts/creating-contracts) | Deterministic rules for that execution |
-| [Execution wait](/core-concepts/execution-waits) | Permission before acting or validation after reporting |
-| [Sub-step](/core-concepts/sub-steps) | A detail within an operation |
-| [Reference](/core-concepts/external-references) | A business identifier or explicit run correlation |
-| [Entity profile](/core-concepts/entity-profiles) | History and configured metrics across an entity's runs |
-| [Notification](/core-concepts/notifications/subscribing) | An event your application can react to |
-| [Integrity verification](/things-to-know/hash-chain) | Check the recorded chain for tampering |
+| [Thread](/core-concepts/threads) | One run of a process, such as one order or one agent session |
+| [Step](/core-concepts/tracking-workflows) | Something that happened in that run, with its outcome and data |
+| [Contract](/core-concepts/creating-contracts) | The rules a run must follow |
+| [Execution wait](/core-concepts/execution-waits) | Asking for permission before a step, or waiting for its check after |
+| [Decisions](/core-concepts/decisions) | Asking what the contract allows next, without claiming anything |
+| [Reference](/core-concepts/external-references) | A business ID, such as `customer_id`, attached to a thread |
+| [Entity profile](/core-concepts/entity-profiles) | History and metrics for one customer, agent or partner across many threads |
+| [Notification](/core-concepts/notifications/subscribing) | An event your code can react to |
 
-Threadify records and checks execution. Your services and agent tools perform
-the work, and decide how to act on permission or validation results.
+## Recording is not the same as passing
+
+Threadify keeps three facts about every step separate, and it helps to keep
+them separate in your head too:
+
+1. **Was it recorded?** Reporting a step returns an acknowledgement as soon as
+   Threadify has stored it.
+2. **Did it succeed?** That's the outcome you reported: `success`, `failed` or
+   `error`.
+3. **Did it follow the contract?** Threadify checks this separately, usually a
+   moment after recording.
+
+A failed payment can follow the contract perfectly, and a successful one can
+break it, for example if it ran without approval. An acknowledgement doesn't
+tell you the check passed. If your code needs the result, ask for it with
+[`waitFor: true`](/core-concepts/execution-waits#after-reporting-the-outcome).
+
+## Threadify doesn't run your code
+
+Your services and agents do the work. Threadify records it and tells you whether
+it was allowed. If a step must not happen without permission, your code has to
+[ask first](/core-concepts/execution-waits) and stop if the answer is no.
+Recording a step after the fact can flag a problem but can't undo it.

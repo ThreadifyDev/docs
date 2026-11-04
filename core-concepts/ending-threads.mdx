@@ -1,74 +1,62 @@
 ---
-title: 'Closing Threads'
-description: 'Complete or cancel threads manually for non-contract workflows'
+title: Finish a thread
+description: Complete or cancel threads that don't have a contract.
 ---
 
-Contract threads close automatically at a terminal step. Close non-contract
-threads explicitly as completed or cancelled. Once closed, a thread cannot
-resume or accept additional steps. Its key remains bound to that thread; use a
-new key for a new execution.
-
-<Warning>
-Manual completion is rejected for contract-based threads unless a terminal step has been reached.
-</Warning>
-
-### Basic Usage
+A thread with a contract completes by itself when its terminal step passes.
+A thread without a contract stays active until you finish it.
 
 <CodeGroup>
-
 ```javascript JavaScript
-const thread = await threadify.thread('order:ORD-123', { label: 'Order ORD-123' }); // No contract
+const thread = await connection.thread('order:ORD-123', { label: 'Order ORD-123' });
 
-// Record some steps
 await thread.step('process_order').success();
 await thread.step('send_email').success();
 
-// Manually end the thread
 await thread.complete('All steps finished');
-// OR
-await thread.cancel('User cancelled order');
+// or, if the run was abandoned:
+await thread.cancel('Customer cancelled the order');
 ```
-
 ```go Go
-thread, _ := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{Label: "Order ORD-123"}) // No contract
+thread, err := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{Label: "Order ORD-123"})
+if err != nil {
+    return err
+}
 
-// Record some steps
-thread.Step("process_order").Success(ctx)
-thread.Step("send_email").Success(ctx)
+// ... record steps ...
 
-// Manually end the thread
-thread.Complete(ctx, "All steps finished")
-// OR
-thread.Cancel(ctx, "User cancelled order")
+if _, err := thread.Complete(ctx, "All steps finished"); err != nil {
+    return err
+}
+// or: thread.Cancel(ctx, "Customer cancelled the order")
 ```
-
 ```python Python
-thread = await connection.thread("order:ORD-123", {"label": "Order ORD-123"})  # No contract
+thread = await connection.thread("order:ORD-123", {"label": "Order ORD-123"})
 
-# Record some steps
-await thread.step("process_order").success()
-await thread.step("send_email").success()
+# ... record steps ...
 
-# Manually end the thread
 await thread.complete("All steps finished")
-# OR
-await thread.close("User cancelled order")
+# or, to cancel:
+await thread.close("Customer cancelled the order")
 ```
-
 </CodeGroup>
 
+| | Complete | Cancel |
+| --- | --- | --- |
+| JavaScript | `thread.complete(reason?)` | `thread.cancel(reason?)` |
+| Go | `thread.Complete(ctx, reason...)` | `thread.Cancel(ctx, reason...)` |
+| Python | `thread.complete(reason?)` | `thread.close(reason?)` |
 
-#### Methods
+A thread with a contract can't be completed by hand before it reaches a
+terminal step.
 
-| SDK | Complete | Cancel |
-|-----|----------|--------|
-| JavaScript | `complete(reason?)` | `cancel(reason?)` |
-| Go | `Complete(ctx, reason?)` | `Cancel(ctx, reason?)` |
-| Python | `complete(reason?)` | `close(reason?)` |
+Once a thread is completed or cancelled, it can't be reopened or receive more
+steps, and its key stays attached to it. Use a new key for the next run.
 
-### Notifications
+## Notifications
 
-When a thread ends, Threadify emits events:
+Finishing a thread sends a notification you can
+[subscribe to](/core-concepts/notifications/subscribing):
 
-- **`thread.completed`** - Triggered when `complete()` is called or a terminal step is reached
-- **`thread.cancelled`** - Triggered when `cancel()` is called
+- `thread.completed`: the thread was completed by hand or reached its terminal step.
+- `thread.cancelled`: the thread was cancelled.

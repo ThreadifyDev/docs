@@ -1,78 +1,38 @@
 ---
 title: Plans and limits
-description: How Registry licenses, bandwidth allowances, and incoming request limits work.
+description: What your plan limits, and what happens when you reach a limit.
 ---
 
-The Engine verifies its license with Fused Registry at startup and refreshes
-plan limits through heartbeats. It keeps limits in memory and enforces them
-locally; ordinary requests do not call Registry.
+Your license comes with a plan. The Engine applies the plan's limits to all
+traffic it receives.
 
-## What is limited
-
-| Allowance | Meaning |
+| Limit | What counts |
 | --- | --- |
-| Input bandwidth | Bytes admitted during a UTC calendar month |
-| Output bandwidth | Bytes returned during a UTC calendar month |
-| Incoming requests per second | Incoming HTTP requests and WebSocket messages |
-| Entity profiles | The plan's entity-profile cap |
+| Input bandwidth | Bytes sent to the Engine in a calendar month (UTC) |
+| Output bandwidth | Bytes the Engine sends back in a calendar month (UTC) |
+| Requests per second | Incoming HTTP requests and WebSocket messages |
+| Entity profiles | How many [entity profiles](/core-concepts/entity-profiles) you can have |
 
-There is no separate outgoing-request rate allowance. Rate counts requests;
-bandwidth counts bytes. Current self-hosted plans do not charge per token or
-cap the number of threads created. Storage capacity depends on your deployment.
-Protocol request-size and concurrency safeguards still apply.
+Plans don't charge per thread or per token, and don't cap how many threads you
+create. How much history you can keep depends on your own PostgreSQL storage.
 
-## Registry operator configuration
+## When you reach a limit
 
-Registry administrators add `threadify` inside each existing plan entry in
-`registry.yaml`. Preserve the other product's fields in the same entry.
+Requests over the limit get `429 Too Many Requests`. Short bursts above your
+requests-per-second limit are rejected until traffic drops. Once a monthly
+bandwidth allowance is used up, requests are rejected until the next month
+starts or your plan changes.
 
-The following example allocations use decimal MB (1 MB = 1,000,000 bytes).
-The dev request and profile values shown are examples; use your chosen policy.
+People signed in to the dashboard aren't affected by the requests-per-second
+limit, so you can still investigate while integrations are being throttled.
+Dashboard traffic does count toward bandwidth. Sessions opened with
+**Sign in with API key** are limited like the key itself.
 
-```yaml
-plans:
-  - id: dev
-    name: Developer
-    # Existing Fused plan fields go here.
-    threadify:
-      input_bandwidth_bytes: 64000000
-      output_bandwidth_bytes: 125000000
-      input_requests_per_second: 100
-      entity_profile_limit: 100
+Plan changes reach a running Engine within a few minutes. You don't need to
+restart it.
 
-  - id: scale_up
-    name: Scale Up
-    # Use your existing plan ID and retain its Fused fields.
-    threadify:
-      input_bandwidth_bytes: 256000000
-      output_bandwidth_bytes: 512000000
-      input_requests_per_second: 1000
-      entity_profile_limit: 100
-```
+## If the Engine can't reach Threadify
 
-Use your existing plan IDs. These are example allocations, not published pricing.
-Set all four fields: `-1` means unlimited; **zero or missing means denied**.
-
-Restart Registry after changing its YAML. The Engine receives changes on its
-next successful heartbeat (normally 60 seconds). This YAML belongs to Registry,
-not your Engine installation.
-
-## Why can the dashboard return 429?
-
-Dashboard API requests currently share the Engine's request and bandwidth quotas
-with integrations. This includes `/v1/contracts` and `/v1/billing/plan`; a quota
-can therefore prevent the plan page itself from loading.
-
-- A brief burst can exceed `input_requests_per_second`.
-- A zero or omitted request limit can reject requests continuously.
-- Exhausted output bandwidth can prevent an otherwise valid response.
-
-Check the license's plan fields and reverse-proxy limits. `/health` does not
-check quota, and a generic 429 may not identify the exhausted allowance.
-
-## Registry outages
-
-After a successful verification, a failed heartbeat does not stop the running
-Engine. It continues enforcing the last verified limits. Explicit suspension or
-revocation is different from a transient network failure. A new startup still
-needs to verify its license.
+A running Engine keeps working with its last known plan if it briefly can't
+reach Threadify's licensing service. It needs to verify the license when it
+starts, so a restart during an outage will fail until the connection is back.

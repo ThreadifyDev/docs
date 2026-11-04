@@ -1,32 +1,29 @@
 ---
 title: Introduction
-description: Understand execution, check shared rules, and give every decision its history.
+description: Record how your services and agents execute work, check it against your rules, and see the history in one place.
 ---
 
-Threadify records execution, checks shared rules, and connects history across
-services and AI agents. Your application runs the work; Threadify acts as its referee.
+Threadify records each run of a business process as a **thread**: the steps your
+services and AI agents performed, what they reported, and whether that matched
+the rules you set. You keep running the work; Threadify keeps the record and
+checks it.
 
-| Task | Use |
-| --- | --- |
-| Record operations and outcomes | SDK steps or OpenTelemetry spans |
-| Define order, approvals, and content rules | Gherkin-style contracts |
-| Check permission before an action | An explicit SDK `waitFor` call |
-| Review history and metrics across runs | Entity profiles |
+You can use it in three ways, and most teams start with the first:
 
-Keep each contract focused on a section of a workflow, such as refund approval.
-References connect related work.
+- **Record.** Send steps from the SDK, or point your existing OpenTelemetry
+  exporter at Threadify.
+- **Check.** Write a contract that says which steps may run, in what order, by
+  whom, and with what data. Threadify validates every run against it.
+- **Gate.** Before a risky action, such as issuing a refund or letting an agent
+  call a tool, ask Threadify whether the contract allows it, and only continue
+  if it does.
 
-Run an Engine for your company. It serves the dashboard and APIs, stores history
-in your PostgreSQL database, and gets license allowances from Fused Registry.
+Threadify runs as an **Engine** that you host. It serves the dashboard and the
+APIs, and stores history in your PostgreSQL database.
 
 <CardGroup cols={2}>
-  <Card title="Run the Engine" icon="server" href="/self-hosting">Install a binary or Docker image and configure persistence.</Card>
-  <Card title="Record your first workflow" icon="bolt" href="/quickstart">Connect an SDK to your Engine.</Card>
-  <Card title="Write a contract" icon="file-contract" href="/core-concepts/creating-contracts">Express deterministic rules in Gherkin-style text.</Card>
-  <Card title="Check before execution" icon="shield" href="/core-concepts/execution-waits">Gate an operation with an explicit SDK wait.</Card>
+  <Card title="Quick start" icon="bolt" href="/quickstart">Record your first thread in a few minutes.</Card>
+  <Card title="Run the Engine" icon="server" href="/self-hosting">Install the Engine and connect PostgreSQL.</Card>
+  <Card title="Write a contract" icon="file-contract" href="/core-concepts/creating-contracts">Describe the rules a run must follow.</Card>
+  <Card title="Check before acting" icon="shield" href="/core-concepts/execution-waits">Stop an action the contract doesn't allow.</Card>
 </CardGroup>
-
-<Note>
-Telemetry records actions after they happen. To block an action, your code must
-wait for permission before executing it.
-</Note>

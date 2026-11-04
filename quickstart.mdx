@@ -1,51 +1,39 @@
 ---
-title: Quick Start
-description: Run your Engine, connect an SDK, and record a workflow.
+title: Quick start
+description: Connect an SDK to your Engine and record your first thread.
 ---
 
-## Before you start
-
-[Run your Engine](/self-hosting), sign in, and create an API key under
-**Developer → API Keys**. Use your Engine's address in the examples below.
+You need a running Engine and an API key. If you don't have them yet,
+[run the Engine](/self-hosting), sign in, and create a key under
+**Developer → API Keys**. Copy your Engine's address from **Settings → Engine**.
 
 ## 1. Install the SDK
 
-<Tabs>
-<Tab title="JavaScript">
-```bash
+<CodeGroup>
+```bash JavaScript
 npm install @threadify/sdk
 ```
-</Tab>
-<Tab title="Go">
-```bash
+```bash Go
 go get github.com/ThreadifyDev/go-sdk
 ```
-</Tab>
-<Tab title="Python">
-```bash
+```bash Python
 pip install threadify-sdk
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-## 2. Connect to Threadify
+## 2. Connect
 
-<Tabs>
-<Tab title="JavaScript">
-```javascript
+<CodeGroup>
+```javascript JavaScript
 import { Threadify } from '@threadify/sdk';
 
-// Connect with your API key and service name
-const connection = await Threadify.connect('your-api-key', 'my-service', {
-  engineUrl: 'https://threadify.example.com' // Your Settings → Engine address
+const connection = await Threadify.connect(process.env.THREADIFY_API_KEY, 'order-service', {
+  engineUrl: 'https://threadify.example.com',
 });
 ```
-</Tab>
-<Tab title="Go">
-```go
-ctx := context.Background()
-conn, err := threadify.Connect(ctx, "your-api-key", 
-    threadify.WithServiceName("my-service"),
+```go Go
+conn, err := threadify.Connect(ctx, os.Getenv("THREADIFY_API_KEY"),
+    threadify.WithServiceName("order-service"),
     threadify.WithEngineURL("https://threadify.example.com"),
 )
 if err != nil {
@@ -53,128 +41,84 @@ if err != nil {
 }
 defer conn.Close()
 ```
-</Tab>
-<Tab title="Python">
-```python
+```python Python
+import os
 from threadify import Threadify
 
-# Connect with your API key and service name
 connection = await Threadify.connect(
-    "your-api-key",
-    service_name="my-service",
+    os.environ["THREADIFY_API_KEY"],
+    service_name="order-service",
     engine_url="https://threadify.example.com",
 )
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-## 3. Create or Resume Your Thread
+## 3. Open a thread
 
-<Tabs>
-<Tab title="JavaScript">
-```javascript
-// Use an application order ID as the key, with a human-readable label
+A thread is identified by a key you choose, usually an ID your application
+already has. Calling `thread()` with the same key later returns the same thread.
+
+<CodeGroup>
+```javascript JavaScript
 const thread = await connection.thread('order:ORD-123', { label: 'Order ORD-123' });
-
 ```
-</Tab>
-<Tab title="Go">
-```go
-// Use an application order ID as the key, with a human-readable label
+```go Go
 thread, err := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{Label: "Order ORD-123"})
 if err != nil {
     log.Fatal(err)
 }
-
 ```
-</Tab>
-<Tab title="Python">
-```python
-# Use an application order ID as the key, with a human-readable label
+```python Python
 thread = await connection.thread("order:ORD-123", {"label": "Order ORD-123"})
-
 ```
-</Tab>
-</Tabs>
+</CodeGroup>
 
-Reuse this key in later requests to recover the same active thread; the optional
-object is only needed to provide creation defaults. Threadify manages its internal
-ID. A closed thread cannot accept more steps, so choose a fresh key for each new
-order. See [threads and steps](/core-concepts/threads) for contracted sessions and
-examples in all three SDKs.
-
-## 4. Add Steps to Your Process
-
-<Tabs>
-<Tab title="JavaScript">
-```javascript
-// Create step first, then call methods on it
-const step = thread.step('validate_input');
-await step.addContext({ userId: 'user-123' }).success();
-
-// Or chain directly on the step builder
-await thread.step('process_data')
-  .addContext({ records: 42 })
-  .success();
-```
-</Tab>
-<Tab title="Go">
-```go
-// Create step first, then call methods on it
-step := thread.Step("validate_input")
-_, err = step.AddContext(map[string]any{"userId": "user-123"}).Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-
-// Or chain directly on the step builder
-_, err = thread.Step("process_data").
-    AddContext(map[string]any{"records": 42}).
-    Success(ctx)
-if err != nil {
-    log.Fatal(err)
-}
-```
-</Tab>
-<Tab title="Python">
-```python
-# Create step first, then call methods on it
-step = thread.step("validate_input")
-await step.add_context({"userId": "user-123"}).success()
-
-# Or chain directly on the step builder
-await (
-    thread.step("process_data")
-    .add_context({"records": 42})
-    .success()
-)
-```
-</Tab>
-</Tabs>
-
-## 5. Finish and inspect
-
-This example created a free-form thread. Finish it explicitly:
+## 4. Record steps
 
 <CodeGroup>
 ```javascript JavaScript
-await thread.complete('Finished');
+await thread.step('order_received').addContext({ items: 2 }).success();
+await thread.step('payment_taken').addContext({ amount: 42.5, currency: 'GBP' }).success();
+```
+```go Go
+if _, err := thread.Step("order_received").AddContext(map[string]any{"items": 2}).Success(ctx); err != nil {
+    log.Fatal(err)
+}
+if _, err := thread.Step("payment_taken").AddContext(map[string]any{"amount": 42.5, "currency": "GBP"}).Success(ctx); err != nil {
+    log.Fatal(err)
+}
+```
+```python Python
+await thread.step("order_received").add_context({"items": 2}).success()
+await thread.step("payment_taken").add_context({"amount": 42.5, "currency": "GBP"}).success()
+```
+</CodeGroup>
+
+## 5. Finish the thread
+
+This thread has no contract, so you close it yourself:
+
+<CodeGroup>
+```javascript JavaScript
+await thread.complete('Order fulfilled');
 await connection.close();
 ```
 ```go Go
-_, err = thread.Complete(ctx, "Finished")
-if err != nil { log.Fatal(err) }
+if _, err := thread.Complete(ctx, "Order fulfilled"); err != nil {
+    log.Fatal(err)
+}
 ```
 ```python Python
-await thread.complete("Finished")
+await thread.complete("Order fulfilled")
 await connection.close()
 ```
 </CodeGroup>
 
-Open **Threads** in your Engine dashboard. Archived views can take a short time
-to catch up with accepted events. Next, add a contract and an explicit wait when
-your code must check permission before acting.
+Open **Threads** in the dashboard to see it. New activity can take a few seconds
+to appear.
 
-Next: [create a contract](/core-concepts/creating-contracts),
-[check before acting](/core-concepts/execution-waits), or
-[troubleshoot ingestion](/troubleshooting).
+## Next
+
+- [Write a contract](/core-concepts/creating-contracts) so Threadify can check each run.
+- [Send OpenTelemetry spans](/opentelemetry) instead of calling the SDK.
+- [Check before acting](/core-concepts/execution-waits) when your code needs permission first.

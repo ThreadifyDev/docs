@@ -1,39 +1,46 @@
 ---
-title: MCP integration
-description: Give an assistant access to execution evidence on your Engine.
+title: MCP
+description: Let an AI assistant investigate threads, violations and entity profiles on your Engine.
 ---
 
-Connect an MCP client using these settings:
+Your Engine has a built-in MCP server. Connect an assistant such as Claude,
+Cursor or your own agent to ask questions like "why did this refund fail?" or
+"which customers had approval violations this week?"
+
+## Connect
 
 | Setting | Value |
 | --- | --- |
-| Transport | **Streamable HTTP**, despite the `/sse` path |
-| URL | `https://threadify.example.com/sse` |
+| Transport | Streamable HTTP |
+| URL | `https://threadify.example.com/mcp` |
 | Header | `X-API-Key: YOUR_ENGINE_API_KEY` |
 
-Use your Engine address, available under **Settings → Engine**. Its embedded
-MCP endpoint needs no separate server package.
+Use your Engine's address from **Settings → Engine**. The assistant sees what
+the API key can see, so for a shared assistant use a
+[service account](/authentication#create-an-api-key) with read-only access.
 
 ## Tools
 
-| Tool | Purpose |
+| Tool | What it does |
 | --- | --- |
-| `get_thread` | Inspect a thread and its recorded execution |
-| `search_threads` | Find threads by contract, actor, status, dates, or tags |
-| `get_entity_profile` | Read an entity's profile, metrics, and health |
-| `get_contract_violations` | Find recorded rule violations |
-| `query` | Run a GraphQL query for more specific evidence |
+| `search_threads` | Find threads by contract, actor, status, tags or date |
+| `get_thread` | Fetch one thread's steps, history, actors and validation results |
+| `get_contract_violations` | List violations across threads, by contract, reference or severity |
+| `get_entity_profile` | Fetch an entity's profile, metrics and health |
+| `query` | Run any [GraphQL](/api-reference/overview) query, for anything the other tools don't cover |
 
-The `graphql://schema` resource exposes the schema. Built-in prompts include
-`investigate_thread`, `analyse_entity_delivery`, and `identify_delivery_failures`.
-Discover tool input schemas through your MCP client.
+The `graphql://schema` resource gives the assistant the full schema. Three
+prompts are included: `investigate_thread`, `analyse_entity_delivery` and
+`identify_delivery_failures`. Your MCP client shows each tool's inputs.
 
-## What an assistant can tell you
+## If it finds nothing
 
-Ask what failed, which approval preceded an action, or which problems recur.
-Answers depend on recorded history and the key's permissions. For empty results,
-check filters and telemetry ingestion.
+Check that the URL points to the Engine that receives your data, that the key
+can read threads, and that the assistant isn't filtering by the wrong contract,
+status or dates. Very recent activity can take a few seconds to appear.
 
-MCP investigation does not enforce tool execution. Use
-[execution waits](/core-concepts/execution-waits) in the tool handler when a
-contract must gate the action itself.
+## Investigating vs. enforcing
+
+MCP lets an assistant read history. It doesn't stop anything. If an agent's own
+tool should only run when a contract allows it, call
+[`waitFor`](/core-concepts/execution-waits) inside that tool.

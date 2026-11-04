@@ -1,0 +1,161 @@
+---
+title: Browser SDK
+description: Record steps from a web page without exposing your API key.
+---
+
+The JavaScript SDK has a browser entry point for recording steps from your web
+app, such as a customer placing an order. Your API key stays on your backend:
+the browser gets a short-lived grant that only covers the threads and actions
+you allow.
+
+## 1. Allow your site's origin
+
+Tell the Engine which origins may connect from a browser, with the
+`THREADIFY_BROWSER_ORIGINS` environment variable:
+
+```sh
+THREADIFY_BROWSER_ORIGINS=https://app.example.com
+```
+
+Separate several origins with commas. Plain `http://` is only accepted for
+`localhost` during development.
+
+## 2. Issue a grant from your backend
+
+Add an authenticated route to your backend. Check that the signed-in user is
+allowed to act on the thread, then ask the Engine for a grant using a service
+account's API key:
+
+```javascript
+// e.g. GET /api/threadify/browser-token
+const response = await fetch(`${engineUrl}/v1/browser-tokens`, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': process.env.THREADIFY_API_KEY,
+  },
+  body: JSON.stringify({
+    origin: 'https://app.example.com',
+    actions: ['startThread', 'recordThreadEvent', 'recordBrowserAction', 'waitFor'],
+    thread_keys: [`order:${orderId}`],
+    thread_ids: [],
+    ttl_seconds: 300,
+  }),
+});
+
+// Return the { token, expires_at } JSON to the browser.
+```
+
+| Field | Meaning |
+| --- | --- |
+| `origin` | The page's origin. Must be on the allowed list. |
+| `actions` | What the browser may do: `startThread`, `recordThreadEvent`, `recordBrowserAction`, `waitFor`, `addRefs`, `closeThread`, `threadEnd` |
+| `thread_keys` | Thread keys it may create or resume (up to 32) |
+| `thread_ids` | Existing thread IDs it may use (up to 32) |
+| `ttl_seconds` | How long the grant lasts: 1 to 300 seconds |
+
+The key must belong to a service account. The Engine refuses to issue grants to
+requests that come from a browser.
+
+## 3. Connect from the page
+
+```javascript
+import { ThreadifyBrowser } from '@threadify/sdk/browser';
+
+const connection = await ThreadifyBrowser.connect({
+  engineUrl: 'https://threadify.example.com',
+  getAccessToken: async () => {
+    const response = await fetch('/api/threadify/browser-token', { credentials: 'same-origin' });
+    if (!response.ok) throw new Error('Could not get Threadify access');
+    return response.json();
+  },
+});
+
+const thread = await connection.thread(`order:${orderId}`);
+await thread.step('order_placed').addContext({ orderId }).success();
+```
+
+The SDK calls `getAccessToken` again before the grant expires, so the
+connection stays open. Browser connections must use `https://` outside of
+`localhost`.
+
+From here, `thread()`, `step()`, `waitFor()` and the other thread methods work as
+they do in Node.js, within what the grant allows.
+
+## Reading history
+
+A grant doesn't allow GraphQL reads or subscriptions. To show history in the
+page, add a backend endpoint that checks the user's access and runs only the
+queries you approve, and pass it as `graphqlUrl`. It must be on the same origin
+as the page. Never expose an unrestricted proxy that uses your API key.
+
+## Capture clicks and form submissions
+
+Instead of calling `step()` for every button, you can let the SDK record user
+actions on part of the page:
+
+```javascript
+const capture = ThreadifyBrowser.autoCapture({ thread });
+
+// When the component mounts
+const dispose = capture.scope(checkoutElement, {
+  include: ['#place-order', '#check-availability'],
+  steps: { '#place-order': 'order_placed' },
+});
+
+// When it unmounts
+dispose();
+
+// When you're done with capture entirely
+capture.stop();
+```
+
+- Capture is off until you call `autoCapture`, and only covers the elements
+  inside the scopes you register.
+- `include` lists the actions to record, as CSS selectors or as names from a
+  `data-threadify-action` attribute.
+- An action listed in `steps` records that contract step. Other actions are
+  stored as activity on the thread but don't complete any step.
+- You can also map an element in HTML with `data-threadify-step="order_placed"`.
+
+### What data is captured
+
+Nothing from form fields is read unless you mark it:
+
+```html
+<button id="place-order" data-threadify-context-order-id="ORD-12345">Place order</button>
+<input name="postcode" data-threadify-context="postcode">
+```
+
+- `data-threadify-context-<name>` attributes on the element or its parents add
+  that value as context (`order_id` here).
+- On a form submission, inputs marked with `data-threadify-context="<name>"` add
+  their values.
+- Password and file inputs are never read.
+
+### Record an action yourself
+
+```javascript
+await thread.captureAction('shipping_quote_requested', { quoteId: 'q42' });
+```
+
+This works with or without auto capture. The result's `classification` says what
+happened: `mapped_step` (a step was recorded, with its `stepId`),
+`mapping_rejected` (it was mapped to a step, but the step was refused, with a
+`message`), or `free_form`, `step_candidate` or `substep` (kept as activity).
+
+### Map actions in the dashboard
+
+Admins can also map actions to steps without changing the page. On a contract
+version's page, open **Input config** and add one `action=step` rule per line,
+for example `click:place-order=order_placed`. Several actions can share a step:
+`click_a,click_b=order_placed`.
+
+These rules apply to captured browser actions and to OpenTelemetry spans on
+threads using that contract, from the time you save them. Earlier activity isn't
+changed. Steps reported directly with `step()` aren't affected.
+
+### Page navigation
+
+Capture continues across client-side route changes as long as the root element
+stays mounted. For full page loads, resume the same thread key on each page.

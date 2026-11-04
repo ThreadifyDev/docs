@@ -1,22 +1,22 @@
 ---
-title: 'Inviting Parties'
-description: 'Invite external parties to collaborate on threads'
+title: Invite another party
+description: Let a partner, supplier or another team record steps on your thread.
 ---
 
-### Creating Invitations
+When another organisation, or a service that doesn't share your API keys, needs
+to take part in a thread, invite them. You send them a token; they use it to
+join the thread with the role and access you chose.
 
 <CodeGroup>
-
 ```javascript JavaScript
 const invitation = await thread.inviteParty({
   role: 'logistics',
   accessLevel: Threadify.FOR_EXTERNAL,
-  expiresIn: '48h'
+  expiresIn: '48h',
 });
 
-// Share invitation.token with the other party
+// Send invitation.token to the other party.
 ```
-
 ```go Go
 invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
     Role:        "logistics",
@@ -24,41 +24,33 @@ invitation, err := thread.InviteParty(ctx, threadify.InviteOptions{
     ExpiresIn:   "48h",
 })
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 
-// Share invitation.Token with the other party
-fmt.Println("Token:", invitation.Token)
+// Send invitation.Token to the other party.
 ```
-
 ```python Python
-from threadify import Threadify
-from threadify.models import InviteOptions
+from threadify import Threadify, InviteOptions
 
 invitation = await thread.invite_party(
     InviteOptions(role="logistics", access_level=Threadify.FOR_EXTERNAL, expires_in="48h")
 )
 
-# Share invitation.token with the other party
-print("Token:", invitation.token)
+# Send invitation.token to the other party.
 ```
-
 </CodeGroup>
 
-### Parameters
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `role` | required | Their role in the contract, for example `logistics`. It must be one of the contract's parties. |
+| `accessLevel` | external | What they can do on the thread. See [access levels](/things-to-know/access-levels#thread-access-levels). |
+| `expiresIn` | `24h` | How long the token can be used, up to `7d` |
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `role` | string | required | Business/contract role (e.g., `"logistics"`, `"supplier"`, `"merchant"`) |
-| `accessLevel` | string | `'external'` | Permission level. Use SDK enums: `Threadify.FOR_EXTERNAL` (default), `Threadify.FOR_OBSERVER`, `Threadify.FOR_PARTICIPANT` |
-| `expiresIn` | string | `'24h'` | Token expiration (e.g., `'24h'`, `'7d'`) |
+Access level constants: `FOR_EXTERNAL`, `FOR_PARTICIPANT` and `FOR_OBSERVER` on
+`Threadify` in JavaScript and Python; `ForExternal`, `ForParticipant` and
+`ForObserver` in Go.
 
-### Invitation Properties
+The invitation contains the `token`, `threadId`, `role`, `accessLevel` and
+`expiresAt`. Treat the token like a password: anyone who has it can join.
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `token` | string | Invitation token to share |
-| `threadId` | string | Thread ID |
-| `role` | string | Assigned role |
-| `accessLevel` | string | Access level |
-| `expiresAt` | string | ISO timestamp |
+Next: [Join a thread](/core-concepts/thread-collaboration/joining-threads).

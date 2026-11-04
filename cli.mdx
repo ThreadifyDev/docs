@@ -1,106 +1,92 @@
 ---
-title: Threadify CLI
-description: Sign in and manage contracts, entity profiles and threads from your terminal.
+title: CLI
+description: Manage contracts, entity profiles, threads and trace rules from your terminal.
 ---
+
+`threadify-cli` manages your Engine from a terminal or a CI job. It reads and
+changes resources. To record steps, use an [SDK](/quickstart) or
+[OpenTelemetry](/opentelemetry).
 
 ## Install
 
-Download and verify a [CLI release](https://github.com/ThreadifyDev/cli/releases)
-and put `threadify-cli` on your PATH. Install it separately from the Engine.
+Download a release for your platform from
+[GitHub](https://github.com/ThreadifyDev/cli/releases), check its checksum, and
+put `threadify-cli` on your `PATH`. It's installed separately from the Engine.
 
-## Connect and sign in
-
-```sh
-threadify-cli config set api-url https://threadify.example.com
-threadify-cli login
-threadify-cli whoami
-```
-
-Or select the Engine during login:
+## Sign in
 
 ```sh
 threadify-cli login --api-url https://threadify.example.com
-# On a remote terminal, print the approval URL without opening a browser:
-threadify-cli login --api-url https://threadify.example.com --no-browser
+threadify-cli whoami
 ```
 
-Sign in to the Engine and select **Approve CLI login**. Missing URLs are prompted.
-Use `--no-browser` remotely; `--no-input` or `CI=true` disables prompts.
+`login` opens your browser. Sign in to the dashboard and choose
+**Approve CLI login**. On a remote machine, add `--no-browser` to print the
+approval link instead.
 
-Approval links last five minutes; credentials last 30 days. Role changes,
-suspension, or source-key revocation invalidate logins. Set the Engine's
-`registry.browser_origin` to its public UI origin.
+- The approval link is valid for five minutes.
+- The CLI login lasts 30 days. Changing your role, suspending you, or revoking
+  the key the login came from ends it sooner.
+- `threadify-cli logout` revokes the login. It doesn't revoke API keys you
+  configured yourself.
 
-```sh
-threadify-cli logout                # Revoke the saved managed CLI login
-threadify-cli config get api-url
-threadify-cli config show           # Key redacted
-```
+Browser login needs the Engine's
+[`server.browser_origin`](/self-hosting#put-it-behind-https) to be set correctly.
 
-`logout` revokes the managed CLI credential. It does not revoke manually
-configured keys or unset `THREADIFY_API_KEY`.
-
-## Automation and configuration
-
-For scripts and service accounts, configure the URL and supply an API key:
+## Use an API key (CI and scripts)
 
 ```sh
 threadify-cli config set api-url https://threadify.example.com
-export THREADIFY_API_KEY='<personal-or-service-account-key>'
+export THREADIFY_API_KEY='your-service-account-key'
 threadify-cli contracts list
 ```
 
-To save a key without putting it in command arguments, pipe it on stdin:
+To save a key in the CLI config without putting it on the command line, pipe it in:
 
 ```sh
 printf '%s' "$THREADIFY_API_KEY" | threadify-cli config set --api-key-stdin
 ```
 
-Stdin avoids putting the key in shell arguments. Config lives at
-`$HOME/.config/threadify/cli.yaml`; override with `THREADIFY_CLI_CONFIG`.
-Changing the saved Engine URL clears its credential.
+`threadify-cli config show` prints the config with the key hidden. Prompts are
+off when `--no-input` is passed or `CI=true` is set.
 
-URL precedence is `--api-url`, `THREADIFY_API_URL`, `THREADIFY_ENGINE_URL`, then
-saved config. Credential precedence is `--key`, the saved credential for that
-Engine, then `THREADIFY_API_KEY`.
+### Where settings come from
 
-Commands print JSON to stdout, errors to stderr and exit nonzero on failure.
-Writes are not retried automatically; check state before retrying a timed-out
-write. Use `--timeout 30s` to change the timeout and `--file -` to read stdin.
+| Setting | Order (first wins) |
+| --- | --- |
+| Engine URL | `--api-url`, `THREADIFY_API_URL`, `THREADIFY_ENGINE_URL`, saved config |
+| API key | `--key`, saved login or key for that Engine, `THREADIFY_API_KEY` |
+| Config file | `THREADIFY_CLI_CONFIG`, otherwise `~/.config/threadify/cli.yaml` |
 
-## Trace ingestion rules
+Changing the saved Engine URL clears the saved credential.
 
-```sh
-threadify-cli ingestion-rules get > rules.json
-# Edit filters, keeping the revision; use [] to disable.
-threadify-cli ingestion-rules set --file rules.json
-threadify-cli ingestion-rules preview --file preview.yaml
-```
+### Output
 
-Admin access is required to save. Rules apply to `/v1/traces`, not SDK events.
-See [filtering](/opentelemetry#filter-trace-data) for the preview format and scope.
+Commands print JSON to stdout and errors to stderr, and exit non-zero on
+failure. The default timeout is 30 seconds; change it with `--timeout 1m`. Use
+`--file -` to read input from stdin.
+
+Writes aren't retried automatically. If a write times out, check whether it
+happened before you run it again.
 
 ## Contracts
 
 ```sh
-threadify-cli contracts preview --file contract.feature
-threadify-cli contracts create --file contract.feature
-threadify-cli contracts list --search checkout --limit 25 --offset 0
-threadify-cli contracts get --id CONTRACT_ID
-threadify-cli contracts update --id CONTRACT_ID --file contract-v2.feature
+threadify-cli contracts preview --file refund.feature
+threadify-cli contracts create --file refund.feature
+threadify-cli contracts list --search refund --limit 25
+threadify-cli contracts get --id CONTRACT_ID [--version 1]
+threadify-cli contracts update --id CONTRACT_ID --file refund.feature
 threadify-cli contracts versions --id CONTRACT_ID
-threadify-cli contracts get --id CONTRACT_ID --version 1
 threadify-cli contracts delete --id CONTRACT_ID --yes
 ```
 
-Contracts use Gherkin (`.feature`) source. Updates create a new
-version; deletion requires `--yes`.
+`update` publishes a new version. See [Write a contract](/core-concepts/creating-contracts).
 
-## Entity profile types and profiles
-
-Choose a reference key for the entity. Save as `customers.yaml`:
+## Entity profiles
 
 ```yaml
+# customers.yaml
 name: Customers
 type: [customer_id]
 description: Customer workflows
@@ -116,48 +102,60 @@ threadify-cli profiles get --id PROFILE_ID
 threadify-cli profiles history --id PROFILE_ID
 ```
 
-Use the returned type ID. Threads with matching `customer_id` refs populate the
-profile after archival. Profiles can be created before activity; repeating the
-same type and ref updates the name. Configure metrics under **Entity Profiles**.
+Running `profiles create` again with the same type and reference updates the
+name. See [Entity profiles](/core-concepts/entity-profiles).
 
-## Threads and references
+## Threads
 
 ```sh
-threadify-cli threads resolve --thread-key order:ORD-1001 --label 'Order ORD-1001' --contract checkout --role worker \
+threadify-cli threads resolve --thread-key order:ORD-1001 --label 'Order ORD-1001' \
+  --contract checkout --role worker \
   --refs '{"order_id":"ORD-1001","customer_id":"CUST-001"}' --tags '["checkout"]'
-# Later requests resume the pinned contract using only the application key.
-threadify-cli threads resolve --thread-key order:ORD-1001
 threadify-cli threads get --id THREAD_ID
-threadify-cli threads list --status active --limit 25 --offset 0
+threadify-cli threads list --status active --limit 25
 threadify-cli threads find --ref-key order_id --ref-value ORD-1001
 threadify-cli threads add-refs --id THREAD_ID --refs '{"ticket_id":"T-123"}'
 threadify-cli threads close --id THREAD_ID --status completed
 threadify-cli threads verify --id THREAD_ID
 ```
 
-`--contract` and `--role` are optional for contract-free threads. Finding by ref
-returns every matching thread; refs are not unique thread identifiers. `close`
-requires an explicit `completed` or `cancelled` status. `verify` prints integrity
-results and exits nonzero when verification fails. Use SDKs or OTEL for event
-instrumentation; the CLI manages and inspects resources.
+- `resolve` creates or resumes a thread by its key, like
+  [`connection.thread()`](/core-concepts/threads). `--contract` and `--role` are
+  only needed for a new contracted thread.
+- `find` returns every thread with that reference.
+- `close` needs `--status completed` or `--status cancelled`.
+- `verify` checks the thread's [integrity](/things-to-know/hash-chain) and exits
+  non-zero if it fails.
 
-For other Engine queries:
+## Trace ingestion rules
+
+```sh
+threadify-cli ingestion-rules get > rules.json
+threadify-cli ingestion-rules set --file rules.json
+threadify-cli ingestion-rules preview --file preview.yaml
+```
+
+See [Drop spans you don't need](/opentelemetry#at-the-engine).
+
+## GraphQL
 
 ```sh
 threadify-cli graphql --file query.graphql --variables '{"id":"THREAD_ID"}'
-threadify-cli help
 ```
 
-## Coding-agent skills
+See the [GraphQL API](/api-reference/overview).
 
-Install the bundled contract and investigation instructions for your coding agent:
+## Skills for coding agents
+
+The CLI includes instructions that help coding agents write contracts and
+investigate threads. Install them for your agent:
 
 ```sh
-threadify-cli skills install --agent codex
-threadify-cli skills install --agent all
+threadify-cli skills install --agent claude    # or codex, cursor, copilot, all
 ```
 
-Supported targets are `codex`, `claude`, `cursor`, and `copilot`. User scope is
-the default; add `--project` for the current repository. Existing modified skills
-are preserved unless `--force` is specified. Installation does not supply
-credentials or start the Engine. Contract validation itself remains deterministic.
+They're installed for your user by default; add `--project` to install them in
+the current repository. Skills you've edited are kept unless you pass `--force`.
+Installing skills doesn't need an Engine or a key.
+
+Run `threadify-cli help` for the full command list.

@@ -1,19 +1,24 @@
 ---
 title: Run the Engine
-description: Install and configure a company-owned Threadify Engine with its embedded dashboard.
+description: Install the Threadify Engine, connect PostgreSQL, and open the dashboard.
 ---
+
+The Engine is a single process that serves the dashboard, the SDK and
+OpenTelemetry endpoints, and the GraphQL and MCP APIs.
 
 ## What you need
 
-- A Threadify-enabled license from [account signup](https://threadify.dev/signup).
-- A PostgreSQL database and credentials with permission to initialize its schema.
-- A persistent hash-chain secret, generated once with `openssl rand -hex 32`.
+- A Threadify license. Get one when you [sign up](https://threadify.dev/signup).
+- A PostgreSQL database, and credentials that can create tables in it.
+- A hash-chain secret. Generate it once with `openssl rand -hex 32` and store it
+  somewhere safe. Threadify uses it to sign history, so you need the same value
+  every time the Engine starts.
 
-The Engine includes the dashboard. Linux/macOS release installations start
-managed Valkey and embedded NATS automatically. Windows installations need an
-external Redis/Valkey server. You do not need the old separate Threadify Web API.
+On Linux and macOS the Engine starts its own Valkey and NATS, so there's nothing
+else to install. On Windows, point it at an existing Redis or Valkey server
+(see [External Redis or Valkey](#external-redis-or-valkey)).
 
-## Install a release binary
+## Install
 
 ```sh
 curl -fsSL --proto '=https' --proto-redir '=https' \
@@ -23,25 +28,23 @@ sh install.sh
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
-The installer verifies the archive checksum and preserves existing config files.
-It prints the configuration path and start command; it does not start a service.
-Release archives support macOS ARM64, Linux AMD64, and Windows AMD64 (Git Bash).
+The installer checks the download's checksum, installs the `threadify` binary,
+and writes a `config.yaml` template. It never overwrites a config file you've
+already edited, and it doesn't start the Engine. Releases are available for
+macOS (ARM64), Linux (AMD64) and Windows (AMD64, using Git Bash).
 
 ## Configure
 
-Use the installed template or save this as `config.yaml`:
+Edit the installed template, or save this as `config.yaml`:
 
 ```yaml
+license_key: "$THREADIFY_LICENSE_KEY"
+
 server:
   host: "0.0.0.0"
   port: 8081
   public_url: "http://localhost:8081"
-
-registry:
-  license_key: "$THREADIFY_LICENSE_KEY"
   browser_origin: "http://localhost:8081"
-
-auth_provider: registry
 
 postgres:
   url: "$POSTGRES_URL"
@@ -57,39 +60,37 @@ logging:
   level: info
 ```
 
-Supply the variables through your shell, container, or service manager:
+Values that start with `$` are read from the environment. Set them and start the
+Engine:
 
 ```sh
-export THREADIFY_LICENSE_KEY='YOUR_REGISTRY_LICENSE'
+export THREADIFY_LICENSE_KEY='your-license-key'
 export POSTGRES_URL='postgres://USER:PASSWORD@localhost:5432/threadify?sslmode=disable'
-export HASH_CHAIN_SECRET_V1='YOUR_SAVED_SECRET'
+export HASH_CHAIN_SECRET_V1='your-saved-secret'
 threadify --config ./config.yaml
 ```
 
-The PostgreSQL example is for a local database; use your database provider's TLS
-settings for remote connections. Preserve the hash-chain secret across restarts
-and retain previous secret versions after rotation.
+For a remote database, use your provider's TLS settings (for example
+`sslmode=require`) instead of `sslmode=disable`.
 
 <Note>
-The current Engine source no longer loads or ships `subscription.yaml`. Older
-releases, including v1.1.2, still require it beside the config. Keep the file when
-running those versions; upgrade to a release containing the removal before deleting it.
-Plan limits come from Registry in either case.
+Configuration files from earlier releases keep working. You don't need to
+change them to upgrade.
 </Note>
 
-`--config` overrides `CONFIG_PATH`. Without either, the binary searches
-`./config`, `../../config`, then `../../../config` relative to its working
-directory. Prefer an explicit path in service definitions.
+If you don't pass `--config`, the Engine uses `CONFIG_PATH`, then looks for
+`config/config.yaml` relative to where it's started. Pass `--config` explicitly
+in service definitions so the Engine always finds the same file.
 
-## Docker
+## Run with Docker
 
-The release image includes a configuration template at `/app/config/config.yaml`.
-Create `threadify.env` with your license, database URL, and saved secret:
+The image includes the same template at `/app/config/config.yaml`, already
+wired to these environment variables. Create `threadify.env`:
 
 ```dotenv
-THREADIFY_LICENSE_KEY=YOUR_REGISTRY_LICENSE
+THREADIFY_LICENSE_KEY=your-license-key
 POSTGRES_URL=postgres://USER:PASSWORD@DATABASE_HOST:5432/threadify?sslmode=require
-HASH_CHAIN_SECRET_V1=YOUR_SAVED_SECRET
+HASH_CHAIN_SECRET_V1=your-saved-secret
 THREADIFY_PUBLIC_URL=https://threadify.example.com
 THREADIFY_BROWSER_ORIGIN=https://threadify.example.com
 ```
@@ -103,73 +104,89 @@ docker run -d --name threadify --restart unless-stopped \
   ghcr.io/threadifydev/engine:latest
 ```
 
-Pin a release tag for controlled upgrades. The current release image targets
-Linux AMD64. The database hostname must be reachable from inside the container;
-`localhost` inside a container refers to that container.
+- Pin a version tag instead of `latest` so upgrades happen when you choose.
+- The image is built for Linux AMD64.
+- Inside a container, `localhost` means the container itself. Use a hostname the
+  container can reach for your database.
+- To use your own config file, mount it at `/app/config/config.yaml`.
+- The image runs as UID/GID 65532. Bind-mounted directories must be writable by
+  that user.
 
-To replace the bundled config, mount your file at `/app/config/config.yaml`.
-The image runs as UID/GID 65532, so bind-mounted data directories must be writable
-by that user.
+## Put it behind HTTPS
 
-## Optional AI agent
+Locally, open `http://localhost:8081`. For a shared deployment:
 
-Every Engine includes the agent artifact. Local execution is opt-in:
+1. Route your HTTPS hostname to the Engine port. Serve it at the root of the
+   hostname (not under a path), and forward WebSocket upgrades.
+2. Set both `server.public_url` and `server.browser_origin` to that address, for
+   example `https://threadify.example.com`.
 
-```sh
-threadify serve --config ./config.yaml --with-agent
-```
+`browser_origin` must exactly match the address people type into their browser,
+or browser sign-in will fail. Locally, pick either `localhost` or `127.0.0.1`
+and use it consistently; browsers treat them as different sites.
 
-For Docker, append `serve --with-agent` after the image name. The first start
-installs the matching runtime into `/data/agent`; the existing `/data` volume
-preserves it across container replacements. Downloads and process memory are
-needed only for local execution.
+Administrators can change the public URL later in **Settings → Engine**. That
+change applies immediately. Changes to `config.yaml` need a restart.
 
-Without the flag or `ai.agent.url`, AI features are hidden. Each Engine started
-with `--with-agent` owns an agent with temporary, in-memory sessions.
-See [Personal AI gateway](/personal-ai-gateway) for model settings, session routing,
-and offline runtime installation.
+## Keep your data
 
-## Public address and browser login
+The Engine keeps live run state in Valkey and history in PostgreSQL. Back up
+PostgreSQL as you normally would, and keep the Engine's data directories on
+persistent storage:
 
-Open `http://localhost:8081` locally. For deployment, forward your HTTPS hostname
-root to the Engine, including WebSocket upgrades. Set `registry.browser_origin`
-and `server.public_url` to that HTTPS address. These settings do not configure
-DNS or TLS themselves. See [authentication](/authentication).
+| Install | Location |
+| --- | --- |
+| Binary | `data/valkey` and `data/jetstream`, next to the binary |
+| Docker | `/data` (the `threadify-data` volume above) |
 
-The standard Registry URL is built into the Engine. `THREADIFY_REGISTRY_URL` is
-an override for local testing. The homepage's `BACKEND_URL` configures the
-homepage server, not the Engine.
+Losing the Valkey data loses runs that are in progress and any outstanding
+[execution grants](/core-concepts/execution-waits).
 
-## Persistence and replicas
+Keep your hash-chain secret too. When you rotate it, add a new version (`v2`)
+and switch `hash_chain_current_version`, but keep the old one in the config.
+Older history can only be [verified](/things-to-know/hash-chain) with the secret
+it was signed with.
 
-Binary installs default to `data/valkey` and `data/jetstream` beside the executable.
-Docker stores both under `/data`. Preserve those directories and PostgreSQL:
-Valkey contains live contract state and invocation claims; the PostgreSQL archive
-can lag behind that state.
-
-For an external Redis/Valkey server:
+## External Redis or Valkey
 
 ```yaml
 redis:
   url: "rediss://default:URL_ENCODED_PASSWORD@redis.example.com:6379/0"
 ```
 
-`REDIS_URL` is also supported. Use `redis://` without TLS or `rediss://` with TLS;
-URL-encode reserved characters in credentials. Separate `host`, `port`, `password`,
-and `db` fields are no longer supported.
+You can also set `REDIS_URL`. Use `rediss://` for TLS and `redis://` without it,
+and URL-encode special characters in the password.
 
-Replicas must share the same database, live Valkey state, and external NATS
-infrastructure. Independently embedded brokers are not a shared cluster.
-See the [deployment reference](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/SELF_HOSTING.md)
-for external NATS and split Engine/writer modes.
+## Running more than one Engine
 
-## Verify startup
+Replicas must share the same PostgreSQL database, the same Redis/Valkey server,
+and an external NATS server. Engines that each start their own NATS don't share
+work, so don't run replicas with the built-in broker.
+
+```yaml
+nats:
+  mode: external
+  url: "nats://nats.example.com:4222"
+```
+
+Provide NATS authentication and TLS through your NATS deployment. You can also
+split the HTTP service from the background persistence workers with
+`threadify --mode engine` and `threadify --mode writer`. Both need external NATS.
+
+## Optional AI agent
+
+The Engine includes an AI assistant for the dashboard. It's off unless you start
+the Engine with `--with-agent` and configure a model. See
+[AI assistant](/personal-ai-gateway).
+
+## Check it's running
 
 ```sh
 curl --fail http://localhost:8081/health
 threadify --config ./config.yaml --healthcheck
+threadify --version
 ```
 
-Then [sign in and create an API key](/authentication). A healthy process can
-still reject traffic if its Registry allowance is exhausted; see
-[plans and limits](/plans-and-limits).
+Then [sign in and create an API key](/authentication). A healthy Engine can still
+reject requests once your plan's allowance is used up. See
+[Plans and limits](/plans-and-limits).

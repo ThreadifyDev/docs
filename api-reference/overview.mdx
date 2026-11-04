@@ -1,71 +1,53 @@
 ---
-title: 'GraphQL API Overview'
-description: 'Query thread execution data, validation results, and contract structures'
+title: GraphQL API
+description: Query threads, steps, validation results, contracts and entity profiles on your Engine.
 ---
 
-Use the GraphQL API on your own Engine to query threads, validation results,
-contracts, and entity profiles. Queries read persisted history, which can lag
-behind live contract state. Use SDK execution waits for permission decisions.
-
-## API Endpoint
+Every Engine serves a GraphQL API for reading its history. The SDKs' read
+methods and the [MCP server](/core-concepts/mcp-integration) use it too.
 
 ```
 POST https://threadify.example.com/graphql
+X-API-Key: YOUR_ENGINE_API_KEY
 ```
-
-## Authentication
-
-Include your API key in the X-API-Key header:
 
 ```bash
-X-API-Key: YOUR_API_KEY
-```
-
-## Query Complexity Limit
-
-- **Maximum complexity:** 1000 points
-- Use pagination to stay within limits
-
-## Example Query
-
-<CodeGroup>
-
-```graphql GraphQL
-query {
-  thread(id: "thread-123") {
-    id
-    status
-    contractName
-    steps {
-      stepName
-      status
-      latestContext
-    }
-  }
-}
-```
-
-```bash cURL
-curl -X POST https://threadify.example.com/graphql \
-  -H "X-API-Key: YOUR_API_KEY" \
+curl https://threadify.example.com/graphql \
+  -H "X-API-Key: $THREADIFY_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{
-    "query": "query { thread(id: \"thread-123\") { id status contractName } }"
-  }'
+  -d '{"query":"{ thread(id: \"THREAD_ID\") { id status contractName } }"}'
 ```
 
-</CodeGroup>
+The API reads stored history, which can be a few seconds behind live activity.
+To decide whether an action may run, use the SDK's
+[`waitFor`](/core-concepts/execution-waits), not a query.
 
-## Available Queries
+## Queries
 
-| Query | Description |
-|-------|-------------|
-| `thread(id)` | Get a single thread by ID |
-| `threads(...)` | Search threads with filters |
-| `threadsByContract(...)` | Find threads by contract |
-| `threadsByRef(...)` | Find threads by external reference |
-| `threadChain(rootId)` | Get thread relationship chain |
-| `stepHistory(...)` | Get step execution history |
-| `validationResults(...)` | Get contract validation results |
-| `contractGraph(name, version)` | Get contract structure |
-| `verifyThreadIntegrity(threadId)` | Verify hash chain integrity |
+| Query | Returns | Reference |
+| --- | --- | --- |
+| `thread(id)` | One thread, with its steps and results | [Threads](/api-reference/thread-queries) |
+| `threads(...)` | Threads matching filters | [Threads](/api-reference/thread-queries) |
+| `threadsByContract(contractName, ...)` | Threads on one contract | [Threads](/api-reference/thread-queries) |
+| `threadsByRef(refValue, refKey?, ...)` | Threads with a reference | [Threads](/api-reference/thread-queries) |
+| `threadChain(rootId, maxDepth?)` | A thread and the threads linked to it | [Threads](/api-reference/thread-queries) |
+| `stepHistory(threadId, stepName, ...)` | Every attempt at a step | [Steps](/api-reference/step-queries) |
+| `validationResults(threadId, stepName, idempotencyKey)` | Validation results for one step | [Validation](/api-reference/validation-queries) |
+| `contractViolations(...)` | Violations across threads | [Validation](/api-reference/validation-queries) |
+| `contractGraph(name, version?)` | A contract's compiled structure | [Contracts](/api-reference/contract-queries) |
+| `can`, `should`, `next` | What the contract allows on a thread | [Decisions](/core-concepts/decisions) |
+| `entityProfile`, `entityProfileTypes`, `entityProfilesByType`, `entityProfileHistory` | Entity profiles and their metrics | [Entity profiles](/api-reference/entity-profile-queries) |
+| `verifyThreadIntegrity`, `verifyStepIntegrity` | Integrity checks | [Integrity](/api-reference/integrity-verification) |
+| `resolveActors(ids)` | Names for user and service IDs | |
+
+The schema is available by introspection, so tools such as GraphiQL and your MCP
+client can show every type and field.
+
+## Limits
+
+- A query can cost at most 1,000 points. Each field costs one point, and fields
+  inside a list cost one point per item. `threads(limit: 10) { steps { stepName } }`
+  is likely to be rejected; fetch the threads first, then each thread's steps.
+- List queries return at most 100 items (1,000 for step history). Use `limit`
+  and `offset` to page.
+- Requests count toward your [plan's limits](/plans-and-limits).

@@ -1,12 +1,17 @@
 ---
-title: Create a contract
-description: Write deterministic rules for a focused part of your workflow.
+title: Write a contract
+description: Describe the steps a run must follow, who may perform them, and what data they need.
 ---
 
-A contract defines a thread's steps, owners, prerequisites, and content checks.
-Its Gherkin-style source compiles into deterministic rules; no AI interprets them.
+A contract is a short text file that says which steps a thread may record, in
+what order, by which role, and with what data. You write it in a Gherkin-style
+language. Threadify compiles it into fixed rules; nothing is interpreted by AI
+when a run is checked.
 
-## A complete contract
+Keep each contract to one focused part of a process, such as refund approval,
+rather than the whole business.
+
+## Example
 
 Save this as `refund.feature`:
 
@@ -26,7 +31,6 @@ Step: "refund"
   Required context: "currency" means "Currency of the refund."
   Required context: "receipt" means "Refund receipt identifier."
   Optional context: "note" means "Additional refund explanation."
-  Optional context: "processor_reference" means "Processor reference when available."
 
 Rule: Approve the request
   When step "approval" is submitted
@@ -45,19 +49,51 @@ Rule: Record the refund
   And this step is terminal
 ```
 
-`Feature` names the contract. A `Step` block describes a step's business meaning
-and registers the context fields the Engine may use. Add one `Required context:`
-or `Optional context:` line for each field; repeat either line type to register
-multiple fields. Required context must be present; optional context can be
-absent. A field meaning after `means` is an optional classifier hint. Duplicate
-fields or conflicting required and optional declarations fail validation. Each
-`Rule` defines the executable checks for one matching step, and all its clauses
-must hold. Only the supported vocabulary is accepted.
+What each part does:
 
-## Parallel steps
+- **`Feature`** is the contract's name. Threads refer to it as `refund_review`
+  (or `refund_review:1` for a specific version).
+- **`Step`** blocks describe what a step means and which context fields it
+  carries. `Required context` must be sent with the step; `Optional context` may
+  be left out. Anything after `means` is a plain-language description of the
+  field.
+- **`Rule`** blocks hold the checks for one step. Every clause in a rule must
+  hold. Each step needs exactly one rule.
 
-If two or more defined steps can run in parallel, add a `Group` that lists their
-step names:
+This contract says: a run starts with `approval`, which needs a reference.
+`refund` can only happen after a successful approval, must use the same
+reference, and must carry a positive amount, a supported currency and a
+well-formed receipt. A valid `refund` completes the thread.
+
+Only the sentences listed in the [rule reference](/core-concepts/contract-rules)
+are accepted. Anything else is an error, so a typo can't silently weaken a rule.
+
+## Preview and publish
+
+In the dashboard, open **Contracts** and paste the source into the editor. Or use
+the CLI:
+
+```sh
+threadify-cli contracts preview --file refund.feature
+threadify-cli contracts create --file refund.feature
+```
+
+`preview` checks the contract and shows how it compiled, without saving it.
+
+## Update a contract
+
+Raise `Version`, edit the rules, and publish again:
+
+```sh
+threadify-cli contracts update --id CONTRACT_ID --file refund.feature
+```
+
+Each version is kept. Threads that are already running stay on the version they
+started with.
+
+## Steps that run in parallel
+
+If two steps can run at the same time, list them in a `Group` after the rules:
 
 ```gherkin
 Group: "parallel_reviews"
@@ -66,77 +102,25 @@ Group: "parallel_reviews"
   And combined duration must be within "5m"
 ```
 
-Each member needs its own `Rule`; a `Step` block supplies business meaning and
-context for classification. The group needs at least two distinct members; the
-success and duration clauses are optional.
-If a later step needs both reviews, declare both as prerequisites in its Rule:
+Each member still needs its own `Rule`. If a later step needs both reviews to
+have finished, say so in that step's rule:
 
 ```gherkin
   And step "fraud_review" must have succeeded
   And step "stock_review" must have succeeded
 ```
 
-## Preview and create
+## When checks happen
 
-In the dashboard, open **Contracts** and use the contract editor. Or use the CLI:
+Checks on a step's **content** and **owner** happen when the step is submitted.
+If they fail, the step is rejected and not recorded.
 
-```sh
-threadify-cli contracts preview --file refund.feature
-threadify-cli contracts create --file refund.feature
-```
+Checks on **order, prerequisites, retries and timing** happen just after the
+step is recorded. If one fails, the step stays recorded and is marked as a
+violation. To wait for that result, or to ask for permission before acting, use
+[execution waits](/core-concepts/execution-waits).
 
-Preview checks the contract and displays its compiled structure without saving.
-To update, increase `Version` and run:
+## Next
 
-```sh
-threadify-cli contracts update --id CONTRACT_ID --file refund.feature
-```
-
-Use `.feature` for contracts.
-
-## Common clauses
-
-| Clause | Purpose |
-| --- | --- |
-| `owner must be "processor"` | Identify the party allowed to report the step |
-| `step "approval" must have succeeded` | Require a previous successful approval |
-| `step "approval" must succeed before each invocation` | Require fresh approval for each attempt |
-| `this step is an entry point` | Allow the workflow to start here |
-| `this step is terminal` | Complete the thread after successful validation |
-| `next step must be one of "refund", "cancel"` | Declare strict immediate transitions to defined steps |
-| `this step must finish within "30s"` | Validate the recorded step duration |
-| `content "reference" must be present` | Require a field, allowing an empty value |
-| `content "reference" must not be empty` | Require non-whitespace text |
-| `content "amount" must be a number greater than 0` | Check a numeric bound |
-| `content "currency" must be one of "GBP", "USD"` | Check allowed values |
-| `content "approved" must be a boolean` | Require `true` or `false` |
-| `content "receipt" must match regex "^RF-[0-9]{8}$"` | Check text against a regular expression |
-
-Dependencies allow intervening work. Once you use explicit `next step` rules,
-declare every allowed immediate transition. These are different flow policies.
-See the [complete rule vocabulary](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/docs/GHERKIN_CONTRACTS.md)
-for timeout, retry, and thread-wide clauses.
-
-## Content and earlier steps
-
-Content checks read the context added to a step. Values are represented as
-strings. Dotted field names are literal keys, not nested paths.
-
-An unquoted `approval.reference` reads the same thread's latest validated
-successful `approval`. A quoted `"approval.reference"` is literal text. A
-cross-step reference also implies a dependency. Missing data or unavailable
-state rejects the submission; Threadify does not silently use an older value.
-
-Regex matching uses Go's RE2-style syntax. Use `^` and `$` for a whole-value
-match. Lookaround and backreferences are unsupported. Double backslashes in
-quoted Gherkin strings, or use `[0-9]` rather than `\d`. Invalid patterns are
-rejected during preview and creation.
-
-## Validation timing
-
-Content and owner checks can reject a submission before recording it. Flow,
-prerequisite, retry, and timing validation uses asynchronous workers; an
-acknowledged event can later be marked violated.
-
-Use [execution waits](/core-concepts/execution-waits) for permission before an
-action or to wait for the exact validation result after reporting it.
+- [Rule reference](/core-concepts/contract-rules): every clause you can use.
+- [Use a contract](/core-concepts/working-with-contracts): run a thread against it.

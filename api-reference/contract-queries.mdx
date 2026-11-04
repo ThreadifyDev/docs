@@ -1,24 +1,19 @@
 ---
-title: 'Contract Queries'
-description: 'Query contract structure, validation rules, and graph topology'
+title: Contract queries
+description: Read the compiled structure of a contract version.
 ---
 
-## Query Contract Graph
-
-<CodeGroup>
-
-```graphql GraphQL
+```graphql
 query {
-  contractGraph(
-    name: "order_fulfillment"
-    version: 2  # Optional - defaults to latest
-  ) {
+  contractGraph(name: "refund_review", version: 1) {
     graph {
       nodes {
         id
         owner
-        required
+        dependsOn
         next
+        timeout
+        businessContext
       }
       entryPoints
       terminalSteps
@@ -26,6 +21,7 @@ query {
     transitions {
       from
       to
+      timeout
       maxRetries
     }
     parties
@@ -33,50 +29,29 @@ query {
 }
 ```
 
-</CodeGroup>
+Leave out `version` for the latest.
 
-## Query Parameters
+| Field | Meaning |
+| --- | --- |
+| `graph.nodes` | The steps and groups (below) |
+| `graph.entryPoints` | Steps a thread can start with |
+| `graph.terminalSteps` | Steps that complete the thread |
+| `transitions` | Allowed moves: `from`, `to`, `timeout`, `maxRetries` |
+| `validation` | Thread-wide rules: `maxDuration`, `allowMultipleTerminals`, `multipleTerminalsSeverity` |
+| `parties` | The contract's roles |
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | String! | Contract name (required) |
-| `version` | Int | Contract version (defaults to latest) |
+## Node fields
 
-## Contract Graph Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `graph` | Graph! | Contract topology |
-| `transitions` | [Transition!] | Valid step transitions |
-| `validation` | Validation | Validation rules |
-| `parties` | [String!] | Involved parties/roles |
-| `notificationConfig` | NotificationConfig | Notification settings |
-
-## Graph Node Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String! | Step ID |
-| `owner` | String | Step owner/role |
-| `type` | String! | Node type |
-| `mode` | String | Execution mode |
-| `required` | Boolean! | Is required step |
-| `next` | [String!] | Next possible steps |
-| `timeout` | String | Step timeout duration |
-| `businessContext` | JSON | Required/optional fields |
-
-## Transition Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `from` | String! | Source step |
-| `to` | [String!]! | Allowed next steps |
-| `maxRetries` | Int! | Max retry attempts |
-
-## Validation Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `maxDuration` | String | Max thread duration |
-| `allowMultipleTerminals` | Boolean! | Allow multiple terminal steps |
-| `multipleTerminalsSeverity` | String | Severity if multiple terminals |
+| Field | Meaning |
+| --- | --- |
+| `id` | Step or group name |
+| `type` | Node type, such as `step` or `parallel_group` |
+| `owner` | The role that reports it |
+| `mode` | Step type, such as `managed` |
+| `required` | Whether it's required |
+| `dependsOn` | Steps that must have succeeded first |
+| `next` | Steps allowed immediately after |
+| `steps` | A group's members |
+| `parentGroup` | The group a step belongs to |
+| `timeout`, `maxDuration` | Time limits |
+| `businessContext` | Its required and optional context fields |

@@ -1,110 +1,125 @@
 ---
-title: Threads and steps
-description: Model one execution without forcing the entire business process into one contract.
+title: Threads
+description: Create a thread for each run of a process, and resume it from anywhere.
 ---
 
-A thread records one execution, optionally governed by a contract version.
-It can cross services. Keep its scope focused, such as refund approval;
-references and entity profiles connect it to other runs.
+A thread is the record of one run: one order, one refund, one agent session. It
+can span several services, and each of them can add steps to it.
 
-- **Steps** record individual operations and their outcomes.
-- **Sub-steps** capture details within an operation.
-- **References** associate work with orders, customers, agents, or partners.
-- **Tags** categorize the thread at creation.
-- **Contracts** define the rules for its execution.
+Keep a thread's scope focused. "Refund approval" is a good thread; "everything
+that ever happens to a customer" isn't. Use
+[references](/core-concepts/external-references) and
+[entity profiles](/core-concepts/entity-profiles) to connect related threads.
 
-## Create and complete
+## Create or resume a thread
 
-[Connect an SDK](/core-concepts/connecting), then:
+You identify a thread with a **thread key**: a string your application already
+uses for that run, such as `order:ORD-123` or an agent session ID. The first call
+with a key creates the thread. Later calls with the same key, from any service or
+worker, return the same thread.
 
-```javascript
+<CodeGroup>
+```javascript JavaScript
 const thread = await connection.thread('order:ORD-123', {
   label: 'Order ORD-123',
   refs: { order_id: 'ORD-123', customer_id: 'CUST-001' },
+  tags: ['web'],
 });
-await thread.step('order_received').addContext({ quantity: 2 }).success();
-await thread.complete('Recorded');
 ```
+```go Go
+thread, err := conn.Thread(ctx, "order:ORD-123", threadify.ThreadOptions{
+    Label: "Order ORD-123",
+    Refs:  map[string]string{"order_id": "ORD-123", "customer_id": "CUST-001"},
+    Tags:  []string{"web"},
+})
+if err != nil {
+    return err
+}
+```
+```python Python
+thread = await connection.thread("order:ORD-123", {
+    "label": "Order ORD-123",
+    "refs": {"order_id": "ORD-123", "customer_id": "CUST-001"},
+    "tags": ["web"],
+})
+```
+</CodeGroup>
 
-Free-form threads require explicit completion or cancellation. Contracted threads
-complete when their terminal step successfully validates. A successful report
-acknowledgement alone is not a completed validation result.
+The options only apply when the thread is created:
 
-## Resume across requests
+| Option | Meaning |
+| --- | --- |
+| `label` | A human-readable name for the dashboard |
+| `contract` | The [contract](/core-concepts/working-with-contracts) to follow, as `name` or `name:version` |
+| `refs` | [References](/core-concepts/external-references). Values must be strings. |
+| `tags` | Labels for filtering. They can't be changed later. |
+| `serviceName` | Overrides the connection's service name for this thread |
+| `role` | Your contract role on this thread |
+
+In Python use `service_name`. In Go use the `threadify.ThreadOptions` fields of
+the same names.
+
+When you resume a thread, Threadify ignores the label, refs and tags you pass and
+keeps the stored ones. To add references later, use
+[`addRefs()`](/core-concepts/external-references).
+
+## Thread key rules
+
+- A key identifies one thread within your Engine.
+- Keys are trimmed and must be non-empty, up to 1024 bytes (UTF-8).
+- Two services calling `thread()` with the same new key at the same moment get
+  the same thread.
+- Once a thread is completed or cancelled it can't be reopened or receive more
+  steps. Use a new key for the next run, such as `order:ORD-123:retry-1`.
+
+Threadify gives each thread its own internal ID too (`thread.id`). You only need
+it for the [GraphQL API](/api-reference/overview) and for
+[joining by ID](/core-concepts/thread-collaboration/joining-threads).
+
+## Contracted sessions
+
+If a thread should follow a contract, pass `contract` the first time you call
+`thread()`. After that, any service can resume it with just the key and the
+contract comes with it:
 
 <CodeGroup>
-
 ```javascript JavaScript
-// Initialize a contracted session before its turns or telemetry begin.
-await connection.thread(sessionId, {
-  label: 'Agent session', contract: 'agent_contract:3', refs: { customerId },
-});
+// When the session starts
+await connection.thread(sessionId, { contract: 'agent_session:3', label: 'Agent session' });
 
-// In any later request or worker, reuse the application's session ID.
+// In any later request or worker
 const thread = await connection.thread(sessionId);
 await thread.step('tool_call').idempotencyKey(toolCallId).success();
 ```
+```go Go
+// When the session starts
+if _, err := conn.Thread(ctx, sessionID, threadify.ThreadOptions{Contract: "agent_session:3", Label: "Agent session"}); err != nil {
+    return err
+}
 
+// In any later request or worker
+thread, err := conn.Thread(ctx, sessionID)
+if err != nil {
+    return err
+}
+_, err = thread.Step("tool_call").IdempotencyKey(toolCallID).Success(ctx)
+```
 ```python Python
-# Initialize before turns or telemetry begin.
-await connection.thread(session_id, {
-    "label": "Agent session",
-    "contract": "agent_contract:3",
-    "refs": {"customerId": customer_id},
-})
+# When the session starts
+await connection.thread(session_id, {"contract": "agent_session:3", "label": "Agent session"})
 
-# In any later request or worker, the contract is already stored.
+# In any later request or worker
 thread = await connection.thread(session_id)
 await thread.step("tool_call").idempotency_key(tool_call_id).success()
 ```
-
-```go Go
-// Initialize before turns or telemetry begin.
-_, err := conn.Thread(ctx, sessionID, threadify.ThreadOptions{
-    Label:    "Agent session",
-    Contract: "agent_contract:3",
-    Refs:     map[string]string{"customerId": customerID},
-})
-if err != nil { return err }
-
-// In any later request or worker, the contract is already stored.
-thread, err := conn.Thread(ctx, sessionID)
-if err != nil { return err }
-_, err = thread.Step("tool_call").IdempotencyKey(toolCallID).Success(ctx)
-if err != nil { return err }
-```
-
 </CodeGroup>
 
-`threadKey` uniquely identifies a thread within your company. Threadify generates
-and retains the internal `threadId`. Concurrent calls create or resume one thread
-and still require normal write permissions. Keys are trimmed, nonblank strings
-of at most 1024 UTF-8 bytes.
+Set the contract when the thread is created. You can't add a contract to a thread
+that was created without one, and passing a different contract when resuming is
+rejected.
 
-`connection.thread(threadKey, { refs, label, contract, tags, serviceName, role })` accepts
-optional creation defaults. Python uses the same optional dictionary, with
-`service_name` and optional `role`. Go accepts an optional `threadify.ThreadOptions`
-value with `Refs`, `Label`, `Contract`, `Tags`, `ServiceName`, and `Role` fields.
-Reference values must be strings. On resume it returns the stored contract and pinned
-version; you do not supply the contract again. An explicitly different contract
-is rejected. Existing labels, refs, and tags are preserved; use `addRefs()` for
-explicit reference updates.
+## Finishing a thread
 
-A key-only call creates a free-form thread if the key is new. Initialize contracted
-sessions first, since adding a contract to an existing free-form thread is rejected.
-Closed threads (including completed, cancelled, or failed threads) cannot resume or accept writes. Use a new key for
-a new execution. Legacy `start()` creates unkeyed threads; `join()` accepts IDs or
-invitations.
-
-## Correlate traces
-
-OTLP ingestion can use `threadify.thread_key` or `workflow.run_id` to combine
-traces from the same run into one thread. Ordinary business refs do not merge
-threads. See [OpenTelemetry](/opentelemetry) for precedence and opting out.
-
-## Shared rules
-
-Contracts validate submitted content and execution history. Use an explicit
-[execution wait](/core-concepts/execution-waits) before an operation to enforce
-flow permission. Even with a grant, your application owns execution, recovery,
-and idempotency of external side effects.
+A thread with a contract completes by itself when its terminal step passes
+validation. A thread without one stays active until you
+[complete or cancel it](/core-concepts/ending-threads).

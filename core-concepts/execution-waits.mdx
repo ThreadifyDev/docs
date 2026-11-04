@@ -1,48 +1,63 @@
 ---
-title: Check before execution
-description: Use SDK waits to enforce a contract around a backend operation or agent tool call.
+title: Check before acting
+description: Ask the contract for permission before an action, or wait for a step's check after reporting it.
 ---
 
-Reports validate asynchronously by default. Use a wait when a backend operation
-or agent tool must pass a check before continuing.
+By default, Threadify checks a step just after you report it, and your code
+carries on without waiting. When an action has consequences you can't undo,
+such as a refund, a payment or an agent's tool call, use a wait.
+
+There are two kinds:
+
+| Wait | Use it to |
+| --- | --- |
+| `waitFor(step)` | Get permission **before** doing the work |
+| `success(..., { waitFor: true })` | Get the contract's verdict **after** reporting the work |
 
 ## Before the action
 
 ```javascript
 const grant = await thread.waitFor('refund', { timeout: 10000 });
-// Execute only after permission resolves successfully.
+
+// Only reached if the contract allows a refund now.
 const receipt = await issueRefund();
+
 await thread.step('refund').addContext(receipt).success();
 ```
 
-`waitFor` checks role, prerequisites, thread state, and transitions, then atomically
-claims an invocation. **Do not execute if it rejects or times out.**
+`waitFor` checks your role, the step's prerequisites, the allowed order and the
+thread's state. If everything is satisfied, it gives you a **grant**: permission
+for one attempt at that step. If a prerequisite is still missing, it waits for
+it until the timeout.
 
-The next report for that step on the same thread instance carries the invocation
-ID automatically. Permission does not imply success or validate future content.
+**If `waitFor` throws or times out, don't do the work.**
+
+The next report of that step on the same thread object is linked to the grant
+automatically. A grant only covers the order and the parties. It can't check
+data you haven't sent yet, so content rules are still checked when you report
+the step.
 
 ## After reporting the outcome
 
 ```javascript
 const result = await thread.step('refund')
-  .addContext({ reference: 'RF-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678' })
+  .addContext({ reference: 'PAY-123', amount: 42, currency: 'GBP', receipt: 'RF-12345678' })
   .success('Refund recorded', { waitFor: true, timeout: 10000 });
-console.log(result.stepId, result.validation.decision);
+
+console.log(result.stepId, result.validation.decision); // "passed"
 ```
 
-Also supported: `.failed('Reason', { waitFor: true })`. The response waits for
-that event's worker validation without polling. It cannot undo an action.
+This works with `.failed()` too. The step is sent once, and the call returns
+when Threadify has checked it. If it broke the contract, the call throws with the
+violation attached.
 
-If a report was accepted but the validation wait timed out, the error carries
-`stepId`. Resume the wait without recording a duplicate:
-
-```javascript
-await thread.waitForValidation('refund', error.stepId, { timeout: 30000 });
-```
+This tells you whether the work was allowed. It can't undo the work. For that,
+ask before acting.
 
 ## Fresh approval for every attempt
 
-Use this complete repeatable workflow when each refund attempt needs its own approval:
+Sometimes every attempt needs its own approval. Use
+`must succeed before each invocation`:
 
 ```gherkin
 Feature: repeatable_refund
@@ -65,38 +80,64 @@ Rule: Finish
   And this step is terminal
 ```
 
-A grant consumes that approval, including when execution fails or the grant is
-abandoned. Concurrent callers cannot use the same approval for two invocations.
-A repeatable action must not be terminal; finish with a separate step.
+Each grant uses up the approval, whether the refund then succeeds, fails or is
+abandoned. Two callers can't share one approval. A repeatable step can't be the
+terminal step, so the contract finishes with a separate `finished` step.
 
 ## Recovery
 
-Cancel a grant you will not use with `await grant.cancel()`. Cancellation does
-not restore its consumed approval. If a permission response is lost, recover
-using its `invocationId` rather than claiming another invocation:
+**You decided not to act.** Release the grant:
+
+```javascript
+await grant.cancel();
+```
+
+This doesn't give back an approval the grant used up.
+
+**A permission response was lost** (for example, the network dropped). Ask again
+with the same invocation ID instead of requesting a new grant:
 
 ```javascript
 const grant = await thread.waitFor('refund', { invocationId: savedInvocationId });
 ```
 
-Persist an invocation ID before requesting permission when crash recovery matters.
-Outstanding claims do not expire automatically. Preserve live Valkey state;
-Threadify does not use a potentially stale PostgreSQL archive to grant permission.
-Use your operation's own idempotency mechanism for external side effects.
+The ID is on the error. If your process might crash between asking and acting,
+choose the ID yourself, save it first, and pass it on the first request too.
+
+**A validation wait timed out after the step was recorded.** The error carries
+the `stepId`. Wait again without reporting the step twice:
+
+```javascript
+await thread.waitForValidation('refund', error.stepId, { timeout: 30000 });
+```
+
+Grants don't expire on their own. If a process crashes holding one, recover it
+with its invocation ID and either use it or cancel it.
+
+Threadify makes sure each attempt is recorded once. It can't make the action
+itself safe to repeat, so use your payment provider's or tool's own idempotency
+key as well.
 
 ## Go and Python
 
-Go uses `thread.WaitFor(ctx, name, &threadify.WaitOptions{Timeout: 10 * time.Second})`
-and `threadify.ReportOptions{WaitFor: true}`. Python uses
-`await thread.wait_for(name, WaitOptions(timeout=10))` and `success(wait_for=True)`.
-JavaScript timeouts are milliseconds; Go uses durations and Python uses seconds.
-See the [Go](/core-concepts/installation/go) and [Python](/core-concepts/installation/python) examples.
+| | JavaScript | Go | Python |
+| --- | --- | --- | --- |
+| Permission | `thread.waitFor(name, { timeout })` | `thread.WaitFor(ctx, name, &threadify.WaitOptions{Timeout: 10 * time.Second})` | `await thread.wait_for(name, WaitOptions(timeout=10))` |
+| Verdict after reporting | `.success(msg, { waitFor: true })` | `.Success(ctx, msg, threadify.ReportOptions{WaitFor: true})` | `.success(msg, wait_for=True)` |
+| Resume a verdict | `thread.waitForValidation(name, stepId)` | `thread.WaitForValidation(ctx, name, stepID, nil)` | `await thread.wait_for_validation(name, step_id)` |
+| Release a grant | `await grant.cancel()` | `grant.Cancel(ctx)` | `await grant.cancel()` |
+| Timeout unit | milliseconds | `time.Duration` | seconds |
 
-## Existing OpenTelemetry instrumentation
+In Go, cancelling the `ctx` cancels the wait. In Python, cancel the task.
 
-After obtaining permission, set `threadify.thread_id`, `threadify.step_name`, and
-`threadify.invocation_id` on the individual operation span. Its exporter can report
-the outcome instead of duplicating it with an SDK step report. Use the same
-identity that obtained the grant. Passive OTLP export alone cannot gate execution.
+## With OpenTelemetry
 
-[Protocol details and failure behavior](https://github.com/ThreadifyDev/engine/blob/main/threadify-go/docs/WAIT_FOR.md)
+If an operation is already traced, get the grant with the SDK, then put these
+attributes on the operation's span instead of reporting a separate step:
+
+- `threadify.thread_id`
+- `threadify.step_name`
+- `threadify.invocation_id`
+
+Exporting spans on its own can't stop anything; the span is only sent after the
+operation has run. See [OpenTelemetry](/opentelemetry).

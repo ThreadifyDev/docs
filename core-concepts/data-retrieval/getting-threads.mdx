@@ -1,106 +1,104 @@
 ---
-title: 'Getting Threads'
-description: 'Retrieve and query thread data'
+title: Find threads
+description: Look up recorded threads by ID or by reference.
 ---
 
-### Retrieving Threads
+These calls read a thread's stored history. They return a read-only copy you
+can inspect; to add steps, use
+[`connection.thread(key)`](/core-concepts/threads) or
+[join the thread](/core-concepts/thread-collaboration/joining-threads).
+
+New activity can take a few seconds to appear.
+
+## By ID
 
 <CodeGroup>
-
 ```javascript JavaScript
-// By ID
-const thread = await threadify.getThread('thread-uuid');
-
-// By external reference
-const threads = await threadify.getThreadsByRef({
-  payment_id: 'pi_1234567890'
-});
+const archived = await connection.getThread(threadId);
+console.log(archived.status, archived.contractName);
 ```
-
 ```go Go
-// By ID
-thread, err := conn.GetThread(ctx, "thread-uuid")
+archived, err := conn.GetThread(ctx, threadID)
 if err != nil {
-    log.Fatal(err)
+    return err
 }
-
-// By external reference
-threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
-    RefKey:   "payment_id",
-    RefValue: "pi_1234567890",
-})
-if err != nil {
-    log.Fatal(err)
-}
+fmt.Println(archived.Status, archived.ContractName)
 ```
-
 ```python Python
-from threadify.models import RefQuery
-
-# By ID
-thread = await conn.get_thread("thread-uuid")
-
-# By external reference
-threads = await conn.get_threads_by_ref(
-    RefQuery(ref_key="payment_id", ref_value="pi_1234567890")
-)
+archived = await connection.get_thread(thread_id)
+print(archived.status, archived.contract_name)
 ```
-
 </CodeGroup>
 
-### JavaScript Reference Queries
+To read back a thread you're working on, pass its ID: `thread.id` in JavaScript,
+`thread.ThreadID` in Go, `thread.thread_id` in Python.
 
-Pass exactly one reference key/value pair. Both the key and value must be
-non-empty strings. Empty maps and maps with multiple refs are rejected.
+## By reference
 
-```javascript
-// All matches in the requested page
-const threads = await threadify.getThreadsByRef({ order_id: 'ORD-1001' });
+Pass exactly one reference key and value:
 
-// Optional filters and pagination belong in a second argument
-const completed = await threadify.getThreadsByRef(
+<CodeGroup>
+```javascript JavaScript
+const threads = await connection.getThreadsByRef({ order_id: 'ORD-1001' });
+
+// With filters and pagination
+const completed = await connection.getThreadsByRef(
   { order_id: 'ORD-1001' },
-  { status: 'completed', limit: 10, offset: 0 }
+  { status: 'completed', limit: 10, offset: 0 },
 );
 
-// First match, or null if no thread matches
-const first = await threadify.getThreadByRef({ order_id: 'ORD-1001' });
+// Just the first match, or null
+const first = await connection.getThreadByRef({ order_id: 'ORD-1001' });
 ```
+```go Go
+threads, err := conn.GetThreadsByRef(ctx, map[string]string{"order_id": "ORD-1001"})
 
-`getThreadsByRef()` returns an array, which is empty when nothing matches.
-`getThreadByRef()` returns the first match or `null`. A ref is not a unique
-thread identifier: several threads can have the same ref. Starting a new thread
-with an ordinary business ref still creates a separate thread. Reserved run
-correlation via `threadify.thread_key` is different; see [OpenTelemetry](/opentelemetry).
+// With filters and pagination
+completed, err := conn.GetThreadsByRef(ctx,
+    map[string]string{"order_id": "ORD-1001"},
+    threadify.RefQuery{Status: "completed", Limit: 10},
+)
 
-These methods read persisted data, so newly recorded activity may take a few
-seconds to appear. Returned threads are read-only. To contribute to an active
-thread, use `threadify.join(thread.id)` with an authorized key.
+// Just the first match, or nil
+first, err := conn.GetThreadByRef(ctx, map[string]string{"order_id": "ORD-1001"})
+```
+```python Python
+threads = await connection.get_threads_by_ref({"order_id": "ORD-1001"})
 
-### JavaScript Query Options
+# With filters and pagination
+completed = await connection.get_threads_by_ref(
+    {"order_id": "ORD-1001"}, status="completed", limit=10,
+)
 
-Pass these options as the second argument to `getThreadsByRef(refs, options)`.
-They are separate from the ref map, so a ref named `status` is still supported.
+# Just the first match, or None
+first = await connection.get_thread_by_ref({"order_id": "ORD-1001"})
+```
+</CodeGroup>
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `status` | string | `active`, `completed`, `cancelled` |
-| `startedAfter` | string | ISO timestamp filter |
-| `startedBefore` | string | ISO timestamp filter |
-| `limit` | number | Page size; default 50, engine maximum 100 |
-| `offset` | number | Pagination offset; default 0 |
+The result is a list, empty if nothing matches. Many threads can share a
+reference, so expect more than one.
 
-The Go and Python SDKs retain their `RefQuery` input, as shown above. Direct
-GraphQL queries retain `refKey` and `refValue`; see
-[Thread Queries](/api-reference/thread-queries).
+| Filter | Meaning |
+| --- | --- |
+| `status` | `active`, `completed` or `cancelled` |
+| `startedAfter`, `startedBefore` | ISO 8601 timestamps |
+| `limit` | Page size. Default 50, maximum 100. |
+| `offset` | Number of results to skip |
 
-### Thread Properties
+In Go these are `RefQuery` fields (`Status`, `StartedAfter`, …). In Python
+they're keyword arguments (`status`, `started_after`, …).
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string | Thread ID |
-| `status` | string | `active`, `completed`, `cancelled` |
-| `contractName` | string | Contract name |
-| `startedAt` | string | ISO timestamp |
-| `completedAt` | string | ISO timestamp |
-| `ownerId` | string | Creator user/service |
+## What you get back
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Thread ID |
+| `status` | `active`, `completed` or `cancelled` |
+| `contractName`, `contractVersion` | The contract, if any |
+| `refs` | The thread's references |
+| `startedAt`, `completedAt` | ISO 8601 timestamps |
+| `ownerId` | The user or service that created it |
+| `error` | Error message, if the thread failed |
+
+From here you can read its [steps](/core-concepts/data-retrieval/querying-steps)
+and [validation results](/core-concepts/data-retrieval/validation-results).

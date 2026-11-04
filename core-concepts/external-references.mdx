@@ -1,123 +1,72 @@
 ---
-title: 'External References'
-description: 'Link your workflows to external systems like payment providers, Shopify, and more'
+title: References
+description: Attach your own IDs, such as order or customer IDs, to threads so you can find them later.
 ---
 
-References are key/value identifiers—such as an order ID, customer ID or support
-ticket—that let you find a thread using names already used by your systems.
+A reference is a key–value pair, such as `order_id: ORD-12345`, that connects a
+thread to the IDs your other systems use. Use references to find threads, and to
+group them into [entity profiles](/core-concepts/entity-profiles).
 
-### Adding References
+## Add references
+
+Pass `refs` when you [create a thread](/core-concepts/threads), or add them
+later:
 
 <CodeGroup>
-
 ```javascript JavaScript
-// Add references to an existing thread
 await thread.addRefs({
   payment_id: payment.id,
   customer_id: payment.customer,
-  order_id: 'ORD-12345'
 });
-
-await thread.step('process_payment')
-  .addContext({ amount: 299.99, currency: 'USD' })
-  .success();
 ```
-
 ```go Go
-// Add references to an existing thread
-err = thread.AddRefs(ctx, map[string]string{
-    "payment_id":   payment.ID,
+err := thread.AddRefs(ctx, map[string]string{
+    "payment_id":  payment.ID,
     "customer_id": payment.Customer,
-    "order_id":           "ORD-12345",
 })
 if err != nil {
-    log.Fatal(err)
-}
-
-_, err = thread.Step("process_payment").
-    AddContext(map[string]any{"amount": 299.99, "currency": "USD"}).
-    Success(ctx)
-if err != nil {
-    log.Fatal(err)
+    return err
 }
 ```
-
 ```python Python
-# Add references to an existing thread
 await thread.add_refs({
     "payment_id": payment.id,
     "customer_id": payment.customer,
-    "order_id": "ORD-12345"
 })
-
-await (
-    thread.step("process_payment")
-    .add_context({"amount": 299.99, "currency": "USD"})
-    .success()
-)
 ```
-
 </CodeGroup>
 
-### Querying by Reference
+Values must be strings. With OpenTelemetry, set `threadify.ref.<key>` on a span,
+for example `threadify.ref.customer_id`.
 
-Ordinary business refs can match multiple threads; they do not enforce uniqueness
-or merge threads. Use the SDK's `thread(threadKey, options?)` entry point to
-create or resume one thread with a unique application key. OpenTelemetry uses
-`threadify.thread_key` for that same identity.
-JavaScript lookups accept exactly one ref pair, with filters in an optional second
-argument. See [Getting Threads](/core-concepts/data-retrieval/getting-threads) for
-pagination, return values, and examples.
-
+## Find threads by reference
 
 <CodeGroup>
-
 ```javascript JavaScript
-const threads = await threadify.getThreadsByRef({
-  payment_id: 'pi_1234567890'
-});
+const threads = await connection.getThreadsByRef({ payment_id: 'pi_1234567890' });
 ```
-
 ```go Go
-threads, err := conn.GetThreadsByRef(ctx, &threadify.RefQuery{
-    RefKey:   "payment_id",
-    RefValue: "pi_1234567890",
-})
+threads, err := conn.GetThreadsByRef(ctx, map[string]string{"payment_id": "pi_1234567890"})
 if err != nil {
-    log.Fatal(err)
+    return err
 }
 ```
-
 ```python Python
-from threadify.models import RefQuery
-
-threads = await conn.get_threads_by_ref(
-    RefQuery(ref_key="payment_id", ref_value="pi_1234567890")
-)
+threads = await connection.get_threads_by_ref({"payment_id": "pi_1234567890"})
 ```
-
 </CodeGroup>
 
-### Next Steps
+See [Find threads](/core-concepts/data-retrieval/getting-threads) for filters and
+pagination.
 
-<CardGroup cols={2}>
-  <Card title="Sub-steps" icon="list-tree" href="/core-concepts/sub-steps">
-    Break down complex operations
-  </Card>
-  <Card title="Getting Threads" icon="database" href="/core-concepts/data-retrieval/getting-threads">
-    Query workflow data
-  </Card>
-</CardGroup>
+## References vs. thread keys
 
-## Run correlation is different
+A reference doesn't identify a thread. Many threads can share a
+`customer_id`, and adding the same reference to two threads doesn't merge them.
 
-`threadify.thread_key` identifies one logical run. OTLP ingestion uses it ahead
-of `workflow.run_id`, then falls back to a trace ID. Several traces with the same
-thread key can contribute to one thread. Use a unique value for each intended
-run; put a customer ID in business refs when a customer has multiple runs.
-The SDK's [create or resume API](/core-concepts/threads) accepts the same key,
-so instrumentation does not need to store the internal `threadId`.
+To identify one run, use a [thread key](/core-concepts/threads#create-or-resume-a-thread).
+`connection.thread(key)` always returns the same thread for the same key, and
+`threadify.thread_key` does the same for OpenTelemetry spans.
 
-This is separate from the Engine's internal thread UUID and from ordinary refs
-such as `customer_id`. Correlation conflicts are rejected; existing threads are
-not retroactively merged. See [OpenTelemetry](/opentelemetry) for configuration.
+A good pattern: use the run's own ID as the thread key (`refund:RF-123`), and put
+the IDs it relates to in references (`customer_id`, `order_id`).

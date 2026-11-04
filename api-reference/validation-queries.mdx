@@ -1,93 +1,83 @@
 ---
-title: 'Validation Queries'
-description: 'Query contract validation results and violation details'
+title: Validation queries
+description: Read validation results for a thread, and violations across threads.
 ---
 
-## Query Validation Results
+## A thread's results
 
-<CodeGroup>
-
-```graphql GraphQL
-# Get validation results for thread
+```graphql
 query {
-  thread(id: "thread-123") {
-    validationResults {
+  thread(id: "THREAD_ID") {
+    validationResults(options: { limit: 20 }) {
       stepName
       overallStatus
       hasCriticalViolation
-      criticalCount
       validations {
         type
         message
         field
+        expected
+        actual
       }
     }
   }
 }
 ```
 
+`options` accepts `stepName`, `stepId`, `idempotencyKey`, `validationType`,
+`limit` (maximum 100) and `offset`.
+
+To fetch one step's results directly, use
+`validationResults(threadId, stepName, idempotencyKey)`; all three are required.
+
+| Field | Meaning |
+| --- | --- |
+| `validationId` | Result ID |
+| `stepId`, `stepName`, `idempotencyKey` | The step that was checked |
+| `timestamp` | When it was checked |
+| `overallStatus` | Overall result |
+| `hasCriticalViolation` | Whether any finding is critical |
+| `criticalCount`, `warningCount`, `minorCount`, `infoCount`, `totalValidations` | Counts |
+| `validations` | Findings: `type`, `message`, `field`, `expected`, `actual`, `rule` |
+
+The finding types are listed under
+[Validation results](/core-concepts/data-retrieval/validation-results#finding-types).
+
+## Violations across threads
+
 ```graphql
-# Get notification summary
 query {
-  thread(id: "thread-123") {
+  contractViolations(contractName: "refund_review", severity: ["critical", "major"], limit: 50) {
+    threadId
+    stepName
+    violationType
+    severity
+    message
+    timestamp
+  }
+}
+```
+
+Filter by `contractName`, by reference (`refKey` and `refValue`), by `severity`,
+and by `startedAfter` / `startedBefore`. Default limit 50.
+
+## Notification counts
+
+For a quick overview of a thread before loading everything:
+
+```graphql
+query {
+  thread(id: "THREAD_ID") {
     notificationSummary {
       totalNotifications
       criticalCount
+      majorCount
+      warningCount
       hasCritical
     }
   }
 }
 ```
 
-</CodeGroup>
-
-## Validation Result Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `validationId` | String! | Unique validation ID |
-| `threadId` | String! | Thread ID |
-| `stepId` | String! | Step ID |
-| `stepName` | String! | Step name |
-| `idempotencyKey` | String! | Step idempotency key |
-| `timestamp` | String! | Validation timestamp |
-| `overallStatus` | String! | Overall validation status |
-| `hasCriticalViolation` | Boolean! | Has critical violations |
-| `criticalCount` | Int! | Number of critical violations |
-| `warningCount` | Int! | Number of warnings |
-| `minorCount` | Int! | Number of minor issues |
-| `infoCount` | Int! | Number of info messages |
-| `totalValidations` | Int! | Total validation count |
-
-## Validation Issue Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `type` | String! | Violation type |
-| `message` | String! | Violation message |
-| `field` | String | Field that failed validation |
-| `expected` | String | Expected value |
-| `actual` | String | Actual value |
-| `rule` | String | Rule that was violated |
-
-## Validation Types
-
-| Type | Description |
-|------|-------------|
-| `required_field` | Required field missing |
-| `invalid_transition` | Invalid step transition |
-| `timeout` | Step exceeded timeout |
-| `retry_limit` | Exceeded retry limit |
-| `invalid_entry_point` | Invalid contract entry point |
-| `terminal_state` | Terminal state violation |
-
-## Notification Summary Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `totalNotifications` | Int! | Total notification count |
-| `criticalCount` | Int! | Critical notifications |
-| `warningCount` | Int! | Warning notifications |
-| `executionCount` | Int! | Execution notifications |
-| `validationCount` | Int! | Validation notifications |
-| `hasCritical` | Boolean! | Has critical violations |
+`notifications(options)` on a thread returns the notifications themselves, with
+the same fields as `contractViolations`.

@@ -1,60 +1,51 @@
 ---
-title: 'Handling Notifications'
-description: 'Acknowledge and handle notification errors'
+title: Acknowledge notifications
+description: Acknowledge each notification after you've handled it, and handle repeats safely.
 ---
 
-### Acknowledging
-
-**You must call `notification.ack()`** to confirm processing:
+Call `ack()` once you've finished handling a notification. If you don't, the
+Engine sends it again.
 
 <CodeGroup>
-
 ```javascript JavaScript
-threadify.on('rule.violated', 'order_placed', async (notification) => {
+connection.subscribe('rule.violated', 'refund', async (notification) => {
   try {
-    await processViolation(notification);
-    notification.ack();  // ACK on success
+    await openIncident(notification);
+    notification.ack();
   } catch (error) {
-    // Don't ACK on failure; allow configured redelivery
+    // No ack: it will be delivered again.
   }
 });
 ```
-
 ```go Go
-err := conn.Subscribe(ctx, "rule.violated", "order_placed", func(n *threadify.Notification) {
-    err := processViolation(n)
-    if err != nil {
-        // Don't ACK on failure; allow configured redelivery
-        return
+err := conn.Subscribe(ctx, "rule.violated", "refund", func(n *threadify.Notification) {
+    if err := openIncident(n); err != nil {
+        return // No ack: it will be delivered again.
     }
-    n.Ack() // ACK on success
+    n.Ack()
 })
-if err != nil {
-    log.Fatal(err)
-}
 ```
-
 ```python Python
 def on_violation(notification):
     try:
-        process_violation(notification)
-        notification.ack()  # ACK on success
+        open_incident(notification)
+        notification.ack()
     except Exception:
-        # Don't ACK on failure; allow configured redelivery
-        pass
+        pass  # No ack: it will be delivered again.
 
-connection.subscribe("rule.violated", "order_placed", on_violation)
+connection.subscribe("rule.violated", "refund", on_violation)
 ```
-
 </CodeGroup>
 
-### Retry behavior
+## Redelivery
 
-The Engine's NATS consumer configuration controls the acknowledgement timeout and
-maximum delivery attempts. An acknowledgement can be lost after your handler has
-already completed, so the same notification can arrive again.
+A notification that isn't acknowledged within 30 seconds is sent again, up to
+three times in total. After that it's dropped, so log failures you need to
+follow up on.
 
-Use the notification ID to deduplicate completed work, and use the destination
-service's idempotency mechanism when triggering an external action. Acknowledge
-after successful processing. Log failed handling attempts so you can investigate
-when the configured delivery limit is reached.
+You can receive the same notification more than once even when your handler
+succeeded, for example if the acknowledgement was lost on the way back. So:
+
+- Use `notificationId` to skip notifications you've already handled.
+- If the handler triggers something external, such as a payment or an email,
+  use that system's own idempotency key too.
