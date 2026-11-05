@@ -54,8 +54,9 @@ Step: "charge"
 - `Description` is required in a `Step` block. Without a `Step` block, the rule's
   title is used as the description.
 - Add one context line per field. `means "..."` is optional.
-- A step with no declared context has no fields available to its rules. Extra
-  fields you send are stored with the step but aren't used in checks.
+- You don't have to declare a field that a content clause checks: the clause
+  declares it as required. Extra fields you send are stored with the step but
+  aren't checked.
 - Declaring a field twice, or as both required and optional, is an error.
 
 ## Step clauses
